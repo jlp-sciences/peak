@@ -1,7 +1,7 @@
 /* Peak — app logic (vanilla JS, no build step). */
 'use strict';
 
-const APP_VERSION = '0.5.0';
+const APP_VERSION = '0.6.0';
 const STORE_KEY = 'peak.v1';
 
 /* ---------- helpers ---------- */
@@ -28,7 +28,11 @@ const ICON = {
   plus: '<path d="M12 5v14M5 12h14"/>',
   close: '<path d="M6 6l12 12M18 6L6 18"/>',
   run: '<path d="M2 16c3 0 3-6 6.5-6S12 16 15.5 16 19 10 22 9"/>',
-  timer: '<circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2M9 2h6"/>'
+  timer: '<circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2M9 2h6"/>',
+  up: '<path d="M6 15l6-6 6 6"/>',
+  down: '<path d="M6 9l6 6 6-6"/>',
+  chev: '<path d="M9 6l6 6-6 6"/>',
+  edit: '<path d="M4 20h4L19 9l-4-4L4 16z"/>'
 };
 const svg = (name, size = 22, sw = 1.8) => `<svg aria-hidden="true" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${sw}" stroke-linecap="round" stroke-linejoin="round">${ICON[name]}</svg>`;
 const LOGO = (size) => `<svg aria-hidden="true" width="${size}" height="${size}" viewBox="0 0 360 360"><path d="M92 272 L180 112" stroke="#5EA2FF" stroke-width="38" stroke-linecap="round"/><path d="M180 112 L268 272" stroke="#FF9E4A" stroke-width="38" stroke-linecap="round"/><circle cx="180" cy="58" r="22" fill="#F2F4F7"/></svg>`;
@@ -46,7 +50,7 @@ function load() {
   if (!D || D.v !== 1) { D = seed(); D._seeded = true; save(); return; }
   // add seed exercises / plans that appeared in a newer version, without touching user edits
   SEED_EXERCISES.forEach((e) => { if (!D.exercises[e.id]) D.exercises[e.id] = JSON.parse(JSON.stringify(e)); });
-  SEED_PLANS.forEach((p) => { if (!D.plans[p.id]) { D.plans[p.id] = JSON.parse(JSON.stringify(p)); D.progress[p.id] = { cycle: 0, week: 1, done: {} }; } });
+  SEED_PLANS.forEach((p) => { if (!D.plans[p.id] && !(D.settings.removedPlans || []).includes(p.id)) { D.plans[p.id] = JSON.parse(JSON.stringify(p)); D.progress[p.id] = { cycle: 0, week: 1, done: {} }; } });
   if (!D.body) D.body = { measures: [], tests: [] };
   if (D.settings.goalWeight == null) D.settings.goalWeight = 76;
   Object.values(D.progress).forEach((pr) => { if (!pr.since) pr.since = iso(new Date(D.created || Date.now())); if (!pr.csince) pr.csince = pr.since; });
@@ -358,7 +362,7 @@ function ask(msg, ok, cb) { UI.confirm = { msg, ok, cb }; UI.sheet = 'confirm'; 
 const UI = { view: 'today', entry: null, lastSet: null, sheet: null, pq: '', pcat: null, expanded: null };
 function go(view, fromBack) {
   if (!fromBack && view !== UI.view) UI.prev = UI.view;
-  UI.view = view; UI.sheet = null; UI.replaceMode = false; render(); window.scrollTo(0, 0);
+  UI.view = view; UI.sheet = null; UI.replaceMode = false; UI.pickPlan = null; render(); window.scrollTo(0, 0);
 }
 /* Phone back button: close the sheet, else previous tab, else Today; from Today the app closes.
    One history entry ("guard") exists whenever we are not on Today with nothing open. */
@@ -556,11 +560,13 @@ function sheetHTML() {
     body = `<h2>Sessions of this week</h2>${plan.sessions.map((s) => `<button class="list-btn" data-act="start" data-s="${s.id}"><span><b>${esc(s.name)} — ${esc(s.title)}</b><small>${s.required ? 'Required' : 'Optional'}${pr.done[s.id] ? ' · done ✓' : ''}</small></span></button>`).join('')}`;
   } else if (UI.sheet === 'match') {
     const s = plan.sessions.find((x) => x.id === UI.pending);
-    body = `<h2>${esc(s.name)} — ${esc(s.title)}</h2><label class="toggle"><span><b>Match version</b><small>Match tomorrow: 2 sets on speed work, no deadlift or bike sprints</small></span><input type="checkbox" id="match-cb"></label>
+    body = `<h2>${esc(s.name)} — ${esc(s.title)}</h2><label class="toggle"><span><b>Match version</b><small>Match tomorrow: fewer sets, some exercises left out</small></span><input type="checkbox" id="match-cb"></label>
       <button class="btn primary big" data-act="start-confirm">Start</button>`;
   } else if (UI.sheet === 'plans') {
     body = `<h2>Plans</h2>${Object.values(D.plans).map((p) => { const ppr = progOf(p.id); const on = p.id === plan.id; return `<button class="list-btn${on ? ' on' : ''}" data-act="setplan" data-v="${p.id}"><span><b>${esc(p.name)}</b><small>${p.sessions.filter((s) => s.required).length} required${p.sessions.some((s) => !s.required) ? ' + optional' : ''} · now cycle ${esc(cycleOf(p).key)}, week ${ppr.week}</small></span>${on ? '<span class="tag">ACTIVE</span>' : ''}</button>`; }).join('')}
-      <p class="muted sm">Each plan keeps its place when you switch. Plan editing arrives in a later step.</p>`;
+      <div class="row wrap">${Object.values(D.plans).map((p) => `<button class="btn small outline" data-act="plan-edit" data-v="${p.id}">${svg('edit', 16)} Edit ${esc(p.name)}</button>`).join('')}</div>
+      <button class="btn outline" data-act="plan-new">${svg('plus', 18, 2)} New plan</button>
+      <p class="muted sm">Each plan keeps its place when you switch.</p>`;
   } else if (UI.sheet === 'more') {
     body = `<h2>Settings & data</h2>
       <label class="toggle"><span><b>Sound at end of rest</b></span><input type="checkbox" data-set="sound" ${D.settings.sound ? 'checked' : ''}></label>
@@ -573,9 +579,9 @@ function sheetHTML() {
   } else if (UI.sheet === 'picker') {
     const q = UI.pq.trim().toLowerCase();
     const list = Object.values(D.exercises).filter((e) => (!UI.pcat || e.cat === UI.pcat) && (!q || e.name.toLowerCase().includes(q))).sort((a, b) => a.name.localeCompare(b.name));
-    body = `<h2>${UI.replaceMode ? 'Replace with…' : 'Add exercise'}</h2><input class="search" type="search" placeholder="Search exercises" aria-label="Search exercises" data-in="pq" value="${esc(UI.pq)}">
+    body = `<h2>${UI.replaceMode ? 'Replace with…' : UI.pickPlan ? (UI.pickPlan.kind === 'change' ? 'Change to…' : 'Add to the plan') : 'Add exercise'}</h2><input class="search" type="search" placeholder="Search exercises" aria-label="Search exercises" data-in="pq" value="${esc(UI.pq)}">
       <div class="chips scroll"><button class="chip-btn${!UI.pcat ? ' on' : ''}" data-act="pcat" data-v="">All</button>${Object.keys(CATS).map((c) => `<button class="chip-btn${UI.pcat === c ? ' on' : ''}" data-act="pcat" data-v="${c}"><i class="dot" style="background:${CATS[c]}"></i>${c}</button>`).join('')}</div>
-      <div class="pick-list">${list.map((e) => `<button class="list-btn" data-act="addex" data-v="${e.id}"><i class="dot" style="background:${CATS[e.cat]}"></i><span><b>${esc(e.name)}</b><small>${esc(TYPES[e.type])}${e.uni ? ' · L/R' : ''}</small></span></button>`).join('') || '<p class="muted">No match.</p>'}</div>
+      <div class="pick-list">${list.map((e) => `<button class="list-btn" data-act="${UI.pickPlan ? 'pe-pick' : 'addex'}" data-v="${e.id}"><i class="dot" style="background:${CATS[e.cat]}"></i><span><b>${esc(e.name)}</b><small>${esc(TYPES[e.type])}${e.uni ? ' · L/R' : ''}</small></span></button>`).join('') || '<p class="muted">No match.</p>'}</div>
       <button class="btn outline" data-act="sheet" data-v="newex">${svg('plus', 18, 2)} New exercise</button>`;
   } else if (UI.sheet === 'newex') {
     body = `<h2>New exercise</h2>
@@ -598,10 +604,11 @@ function render() {
     today: viewToday, session: viewSession, calendar: calendarView, exercises: exercisesView,
     exercise: exerciseView, analysis: analysisView, body: bodyView
   };
+  if (typeof planEditView === 'function') views.planedit = planEditView;
   const app = $('#app');
   app.className = 'app view-' + UI.view;
   $('#main').innerHTML = (views[UI.view] || viewToday)();
-  $('#navwrap').innerHTML = UI.view === 'session' ? '' : navHTML();
+  $('#navwrap').innerHTML = (UI.view === 'session' || UI.view === 'planedit') ? '' : navHTML();
   if (typeof afterRender === 'function') afterRender();
   $('#sheetwrap').innerHTML = sheetHTML();
   const f = $('#import-file'); if (f) f.addEventListener('change', importFile);
@@ -618,7 +625,7 @@ document.addEventListener('click', (ev) => {
   switch (a) {
     case 'go': go(b.dataset.v); break;
     case 'sheet': UI.sheet = b.dataset.v; if (b.dataset.v === 'picker') { UI.pq = ''; } render(); break;
-    case 'close': UI.sheet = null; UI.replaceMode = false; render(); break;
+    case 'close': if (UI.pickPlan && UI.pe) { const k = UI.pickPlan.kind; UI.pickPlan = null; UI.sheet = k === 'change' ? 'pe-item' : null; render(); break; } UI.sheet = null; UI.replaceMode = false; render(); break;
     case 'start': {
       const s = activePlan().sessions.find((x) => x.id === b.dataset.s);
       if (s && s.matchable) { UI.pending = s.id; UI.sheet = 'match'; render(); }
@@ -664,6 +671,7 @@ document.addEventListener('click', (ev) => {
       const name = ($('#nx-name').value || '').trim(); if (!name) { toast('Give the exercise a name'); break; }
       const e = { id: 'x' + uid(), name, cat: $('#nx-cat').value, type: $('#nx-type').value, equip: $('#nx-eq').value, uni: $('#nx-uni').checked, rest: Math.max(0, Number($('#nx-rest').value) || 0) };
       e.upd = Date.now(); D.exercises[e.id] = e;
+      if (UI.pickPlan && typeof pePicked === 'function') { save(); toast(name + ' created'); pePicked(e.id); break; }
       if (w) { w.items.push({ exId: e.id, block: 'Added', presc: null }); w.cur = w.items.length - 1; UI.entry = null; }
       save(); UI.sheet = null; toast(name + ' created'); render(); break;
     }

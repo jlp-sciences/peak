@@ -263,3 +263,25 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px s
 @media (min-width: 760px) { .frames { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
 
 .replace-btn { align-self: flex-start; }
+
+/* plan editor */
+.pe-in { height: 44px; padding: 0 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--bg2); font-size: 15px; color: var(--text); min-width: 0; }
+.pe-in.grow { flex: 1; font-weight: 600; }
+.pe-cyc { display: flex; align-items: center; gap: 8px; } .pe-cyc .pe-in { flex: 1; }
+.pe-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.pe-grid.w3 { grid-template-columns: repeat(3, 1fr); } .pe-grid.w4 { grid-template-columns: repeat(4, 1fr); }
+.pe-num { min-width: 36px; text-align: center; font-family: var(--display); font-weight: 700; font-size: 20px; }
+.pe-tabs { align-items: center; gap: 8px; margin: 4px 0 12px; }
+.pe-shead { width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 10px; border: 0; background: transparent; text-align: left; padding: 0; }
+.pe-shead span { display: flex; flex-direction: column; gap: 2px; } .pe-shead b { font-size: 16px; } .pe-shead small { font-size: 12px; color: var(--muted); }
+.pe-block { display: flex; flex-direction: column; gap: 6px; padding: 10px; border-radius: 14px; background: var(--bg2); }
+.pe-block .row { gap: 4px; }
+.pe-item { display: flex; align-items: center; gap: 10px; padding: 10px; border-radius: 12px; border: 1px solid var(--line); background: var(--card); text-align: left; width: 100%; }
+.pe-item span { flex: 1; display: flex; flex-direction: column; gap: 2px; min-width: 0; } .pe-item b { font-size: 15px; } .pe-item small { font-size: 12px; color: var(--muted); }
+.pe-note { display: flex; flex-direction: column; gap: 8px; padding: 10px; border-radius: 14px; background: var(--bg2); }
+.pe-sub { display: flex; flex-direction: column; gap: 8px; padding: 12px; border-radius: 14px; background: var(--bg2); }
+.pe-det summary { cursor: pointer; font-size: 13px; font-weight: 600; color: var(--soft); padding: 4px 0; }
+.pe-det[open] summary { margin-bottom: 8px; }
+.pe-sbar { gap: 8px; margin-top: 4px; }
+.row.wrap { flex-wrap: wrap; gap: 8px; }
+.danger-t { color: #FF8A8A; }
