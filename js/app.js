@@ -1,7 +1,7 @@
 /* Peak — app logic (vanilla JS, no build step). */
 'use strict';
 
-const APP_VERSION = '0.4.2';
+const APP_VERSION = '0.5.0';
 const STORE_KEY = 'peak.v1';
 
 /* ---------- helpers ---------- */
@@ -184,65 +184,89 @@ function itemTargets(item) {
   if (ex.uni) return { L: p.L || 0, R: p.R || 0, total: (p.L || 0) + (p.R || 0) };
   return { total: p.sets || 0 };
 }
-function itemCounts(w, item) {
-  const ss = setsOf(w, item.exId);
-  return { L: ss.filter((s) => s.side === 'L').length, R: ss.filter((s) => s.side === 'R').length, n: ss.length };
-}
-function itemDone(w, item) {
-  const t = itemTargets(item), c = itemCounts(w, item);
-  if (!t.total) return false;
-  const ex = D.exercises[item.exId];
-  return ex.uni ? (c.L >= t.L && c.R >= t.R) : c.n >= t.total;
-}
-function nextSide(w, item) {
-  const t = itemTargets(item), c = itemCounts(w, item);
-  if (c.R < c.L && (!t.total || c.R < t.R)) return 'R';
-  if (t.total && c.L >= t.L && c.R < t.R) return 'R';
-  return 'L';
-}
-
-/* default values for the entry panel */
-function freshEntry(w, item) {
+/* Each exercise of a session holds its rows: planned sets shown in advance, ticked when done.
+   A ticked row is also a set in w.sets (same id), which feeds history, graphs and sync. */
+function ensureRows(w, item) {
+  if (item.rows) return item.rows;
   const ex = D.exercises[item.exId]; const p = item.presc || {};
-  const ss = setsOf(w, item.exId);
-  const side = ex.uni ? nextSide(w, item) : null;
   const sug = suggestion(item.exId, p, w.id);
-  const e = { exId: item.exId, side, w: 0, r: p.rmax || p.rmin || 8, t: p.t || 30, d: p.d || 20 };
-  if (ex.type === 'time' && ex.ref && ex.ref.t && !p.t) e.t = ex.ref.t;
-  if (sug) e.w = sug.w;
-  const lastL = ss.filter((s) => s.side === 'L').slice(-1)[0];
-  const last = ss.slice(-1)[0];
-  if (side === 'R' && lastL) { e.w = lastL.w; e.r = lastL.r; e.t = lastL.t; e.d = lastL.d; }
-  else if (last) {
-    const inc = INC[ex.equip] || 1;
-    const prev = ex.uni ? lastL || last : last;
-    e.w = prev.w; e.r = prev.r; e.t = prev.t || e.t; e.d = prev.d || e.d;
-    if (prev.feel === 'easy') e.w = roundTo((prev.w || 0) + inc, ex.equip);
-    if (prev.feel === 'hard') e.w = roundTo(Math.max(0, (prev.w || 0) - inc), ex.equip);
-  }
-  return e;
+  const base = { w: sug ? sug.w : 0, r: p.rmax || p.rmin || 8, t: p.t || (ex.ref && ex.ref.t) || 30, d: p.d || 20 };
+  const rows = setsOf(w, item.exId).map((s) => ({ id: s.id, side: s.side, w: s.w, r: s.r, t: s.t, d: s.d, done: true }));
+  const mk = (side) => ({ id: uid(), side, w: base.w, r: base.r, t: base.t, d: base.d, done: false });
+  const t = itemTargets(item);
+  if (ex.uni) {
+    const nL = rows.filter((r) => r.side === 'L').length, nR = rows.filter((r) => r.side === 'R').length;
+    for (let i = 0; i < Math.max(t.L || 0, t.R || 0); i++) { if (i < (t.L || 0) && i >= nL) rows.push(mk('L')); if (i < (t.R || 0) && i >= nR) rows.push(mk('R')); }
+  } else for (let i = rows.length; i < (t.total || 0); i++) rows.push(mk(null));
+  if (!rows.length) rows.push(mk(ex.uni ? 'L' : null));
+  item.rows = rows; return rows;
 }
-
-function saveSet() {
-  const w = active(); if (!w) return;
-  const item = w.items[w.cur]; if (!item) return;
-  const ex = D.exercises[item.exId]; const e = UI.entry;
-  const s = { id: uid(), exId: item.exId, side: ex.uni ? e.side : null, ts: Date.now() };
-  if (['wr', 'bwkg', 'wd', 'wt'].includes(ex.type)) s.w = Number(e.w) || 0;
-  if (['wr', 'bwkg', 'reps'].includes(ex.type)) s.r = Number(e.r) || 0;
-  if (['time', 'wt'].includes(ex.type)) s.t = Number(e.t) || 0;
-  if (ex.type === 'wd') s.d = Number(e.d) || 0;
-  w.sets.push(s); save();
-  UI.lastSet = (s.side !== 'R' && s.w != null) ? s.id : null;
-  const goR = ex.uni && s.side === 'L' && (() => { const c = itemCounts(w, item), t = itemTargets(item); return c.R < c.L && (!t.total || c.R < t.R); })();
+function itemCounts(w, item) {
+  const rows = ensureRows(w, item); const done = rows.filter((r) => r.done);
+  return { L: done.filter((r) => r.side === 'L').length, R: done.filter((r) => r.side === 'R').length, n: done.length, total: rows.length };
+}
+function itemDone(w, item) { const rows = ensureRows(w, item); return rows.length > 0 && rows.every((r) => r.done); }
+function selectedRow(w, item) {
+  const rows = ensureRows(w, item);
+  return rows.find((r) => r.id === UI.selRow) || rows.find((r) => !r.done) || rows[rows.length - 1];
+}
+function setFromRow(ex, row) {
+  const s = { id: row.id, exId: ex.id, side: ex.uni ? row.side : null, ts: Date.now() };
+  if (['wr', 'bwkg', 'wd', 'wt'].includes(ex.type)) s.w = Number(row.w) || 0;
+  if (['wr', 'bwkg', 'reps'].includes(ex.type)) s.r = Number(row.r) || 0;
+  if (['time', 'wt'].includes(ex.type)) s.t = Number(row.t) || 0;
+  if (ex.type === 'wd') s.d = Number(row.d) || 0;
+  return s;
+}
+function writeSet(w, ex, row) {
+  const s = setFromRow(ex, row); const i = w.sets.findIndex((x) => x.id === row.id);
+  if (i >= 0) { s.feel = w.sets[i].feel; s.ts = w.sets[i].ts; w.sets[i] = s; } else w.sets.push(s);
+}
+/* tick / untick a row: ticking logs the set, starts the rest (not between L and R) and prefills what follows */
+function toggleRow(w, item, rowId) {
+  const ex = D.exercises[item.exId]; const rows = ensureRows(w, item); const row = rows.find((r) => r.id === rowId); if (!row) return;
+  if (row.done) {
+    row.done = false; w.sets = w.sets.filter((s) => s.id !== row.id); if (UI.lastSet === row.id) UI.lastSet = null; UI.selRow = row.id;
+    save(); render(); return;
+  }
+  row.done = true; writeSet(w, ex, row);
+  UI.lastSet = (row.side !== 'R' && ['wr', 'bwkg', 'wd', 'wt'].includes(ex.type)) ? row.id : null;
+  rows.forEach((x) => {
+    if (x.done || x.touched) return;
+    x.w = row.w; x.t = row.t; x.d = row.d;
+    if (!ex.uni || x.side === row.side || (row.side === 'L' && x.side === 'R')) x.r = row.r;
+  });
+  const next = rows.find((x) => !x.done);
+  const goR = ex.uni && row.side === 'L' && next && next.side === 'R';
   if (!goR && ex.rest) startRest(ex.rest, ex.name, ex.id);
-  if (itemDone(w, item)) {
+  UI.selRow = next ? next.id : null;
+  if (!next) {
     const nxt = w.items.findIndex((it, i) => i > w.cur && !itemDone(w, it));
     const any = nxt >= 0 ? nxt : w.items.findIndex((it) => !itemDone(w, it));
-    if (any >= 0 && any !== w.cur) { w.cur = any; save(); toast(ex.name + ' done'); }
+    if (any >= 0 && any !== w.cur) { w.cur = any; UI.selRow = null; UI.lastSet = null; toast(ex.name + ' done'); }
   }
-  UI.entry = freshEntry(w, w.items[w.cur]);
-  render();
+  save(); render();
+}
+function addRow(w, item) {
+  const ex = D.exercises[item.exId]; const rows = ensureRows(w, item); const last = rows[rows.length - 1] || {};
+  let side = null;
+  if (ex.uni) { const nL = rows.filter((r) => r.side === 'L').length, nR = rows.filter((r) => r.side === 'R').length; side = nL > nR ? 'R' : 'L'; }
+  const row = { id: uid(), side, w: last.w || 0, r: last.r || 8, t: last.t || 30, d: last.d || 20, done: false };
+  rows.push(row); UI.selRow = row.id; save(); render();
+}
+/* Easy / Good / Hard on the last ticked set moves the weight of the next untouched sets of that side */
+function applyFeel(w, item, setId, feel) {
+  const ex = D.exercises[item.exId]; const s = w.sets.find((x) => x.id === setId); if (!s) return;
+  s.feel = s.feel === feel ? null : feel;
+  const inc = INC[ex.equip] || 1; const delta = s.feel === 'easy' ? inc : s.feel === 'hard' ? -inc : 0;
+  ensureRows(w, item).forEach((x) => { if (!x.done && !x.touched && (!ex.uni || x.side === s.side || x.side === 'R')) x.w = roundTo(Math.max(0, (s.w || 0) + delta), ex.equip); });
+  save(); render();
+}
+function editRow(w, item, key, value, touch = true) {
+  const ex = D.exercises[item.exId]; const row = selectedRow(w, item); if (!row) return;
+  row[key] = value; if (touch) row.touched = true;
+  if (row.done) writeSet(w, ex, row);
+  save(); render();
 }
 
 function replaceItem(w, i, newId) {
@@ -423,44 +447,53 @@ function viewToday() {
 
 function entryHTML(w, item) {
   const ex = D.exercises[item.exId]; const p = item.presc || {};
-  if (!UI.entry || UI.entry.exId !== item.exId) UI.entry = freshEntry(w, item);
-  const e = UI.entry; const inc = INC[ex.equip] || 1;
+  const row = selectedRow(w, item); const inc = INC[ex.equip] || 1;
   const sug = suggestion(item.exId, p, w.id);
   const step = (label, key, val, unit, dec, incr) => `<div class="stepper"><span class="lbl">${label}</span><div class="st-row">
       <button class="st-btn" aria-label="Decrease ${label}" data-act="step" data-k="${key}" data-d="${-dec}">−</button>
       <input class="st-val" inputmode="decimal" aria-label="${label}" data-in="${key}" value="${esc(val)}"><span class="unit">${unit}</span>
       <button class="st-btn" aria-label="Increase ${label}" data-act="step" data-k="${key}" data-d="${incr}">+</button></div></div>`;
   let fields = '';
-  if (['wr', 'wd', 'wt'].includes(ex.type)) fields += step('Weight', 'w', fmtW(e.w), 'kg', inc, inc);
-  if (ex.type === 'bwkg') fields += step('Added', 'w', fmtW(e.w), e.w ? 'kg' : 'kg · BW', inc, inc);
-  if (['wr', 'bwkg', 'reps'].includes(ex.type)) fields += step('Reps', 'r', e.r, 'reps', 1, 1);
-  if (['time', 'wt'].includes(ex.type)) { const st = e.t >= 300 ? 60 : 5; fields += step('Time', 't', e.t, 's', st, st); }
-  if (ex.type === 'wd') fields += step('Distance', 'd', e.d, 'm', 5, 5);
-  const c = itemCounts(w, item); const t = itemTargets(item);
-  const lastL = setsOf(w, item.exId).filter((s) => s.side === 'L').slice(-1)[0];
-  const sideHint = ex.uni ? (e.side === 'R' && lastL ? `Right target: ${lastL.r != null ? lastL.r + ' reps' : fmtT(lastL.t || 0)} — match the left, never more.` : 'Left goes first and sets the target.') : '';
+  if (row) {
+    if (['wr', 'wd', 'wt'].includes(ex.type)) fields += step('Weight', 'w', fmtW(row.w), 'kg', inc, inc);
+    if (ex.type === 'bwkg') fields += step('Added', 'w', fmtW(row.w), row.w ? 'kg' : 'kg · BW', inc, inc);
+    if (['wr', 'bwkg', 'reps'].includes(ex.type)) fields += step('Reps', 'r', row.r, 'reps', 1, 1);
+    if (['time', 'wt'].includes(ex.type)) { const st = row.t >= 300 ? 60 : 5; fields += step('Time', 't', row.t, 's', st, st); }
+    if (ex.type === 'wd') fields += step('Distance', 'd', row.d, 'm', 5, 5);
+  }
+  const rows = ensureRows(w, item);
+  const idx = row ? rows.filter((r) => r.side === row.side).indexOf(row) + 1 : 0;
+  const lastL = rows.filter((r) => r.side === 'L' && r.done).slice(-1)[0];
+  const sideHint = ex.uni && row ? (row.side === 'R' && lastL ? `Right target: ${lastL.r != null ? lastL.r + ' reps' : fmtT(lastL.t || 0)} — match the left, never more.` : 'Left goes first and sets the target.') : '';
   const fbSet = UI.lastSet && w.sets.find((s) => s.id === UI.lastSet && s.exId === item.exId);
+  const fbIdx = fbSet ? rows.filter((r) => r.side === (fbSet.side || null)).findIndex((r) => r.id === fbSet.id) + 1 : 0;
   return `<div class="entry">
+    ${fbSet ? `<div class="feel"><span class="muted sm">Set ${fbIdx}${fbSet.side ? ' ' + fbSet.side : ''} felt</span>
+      ${['easy', 'good', 'hard'].map((f) => `<button class="feel-btn${fbSet.feel === f ? ' on' : ''}" aria-pressed="${fbSet.feel === f}" data-act="feel" data-v="${f}">${f[0].toUpperCase() + f.slice(1)}</button>`).join('')}</div>` : ''}
     ${sug ? `<div class="sugg"><div class="row between"><span class="eyebrow">SUGGESTED</span><span class="sugg-w">${ex.type === 'bwkg' ? (sug.w ? 'BW +' + fmtW(sug.w) + ' kg' : 'BW') : fmtW(sug.w) + ' kg'}${p.rmin != null ? ' × ' + (p.rmin === p.rmax ? p.rmin : p.rmin + '–' + p.rmax) : ''}</span></div><span class="soft sm">${esc(sug.why)}</span></div>` : ''}
     ${ex.ref ? `<p class="ref">FitNotes ref · ${esc(ex.ref.date)} · ${esc(ex.ref.text)}</p>` : ''}
+    ${row ? `<span class="eyebrow">EDITING SET ${idx}${row.side ? ' · ' + row.side : ''}${row.done ? ' · DONE' : ''}</span>` : ''}
     <div class="fields">${fields}</div>
-    ${ex.uni ? `<div class="sides" role="group" aria-label="Side">
-      <button class="side L${e.side === 'L' ? ' on' : ''}" aria-pressed="${e.side === 'L'}" data-act="side" data-v="L">L · Left <small>${c.L}/${t.L || '–'}</small></button>
-      <button class="side R${e.side === 'R' ? ' on' : ''}" aria-pressed="${e.side === 'R'}" data-act="side" data-v="R">R · Right <small>${c.R}/${t.R || '–'}</small></button></div>
+    ${ex.uni && row ? `<div class="sides" role="group" aria-label="Side of this set">
+      <button class="side L${row.side === 'L' ? ' on' : ''}" aria-pressed="${row.side === 'L'}" data-act="side" data-v="L">L · Left</button>
+      <button class="side R${row.side === 'R' ? ' on' : ''}" aria-pressed="${row.side === 'R'}" data-act="side" data-v="R">R · Right</button></div>
       <p class="soft sm">${sideHint}</p>` : ''}
-    <button class="btn primary big" data-act="save">Save set</button>
-    ${fbSet ? `<div class="feel"><span class="muted sm">Set ${setsOf(w, item.exId).filter((s) => (s.side || null) === (fbSet.side || null)).indexOf(fbSet) + 1}${fbSet.side ? ' ' + fbSet.side : ''} felt</span>
-      ${['easy', 'good', 'hard'].map((f) => `<button class="feel-btn${fbSet.feel === f ? ' on' : ''}" aria-pressed="${fbSet.feel === f}" data-act="feel" data-v="${f}">${f[0].toUpperCase() + f.slice(1)}</button>`).join('')}</div>` : ''}
+    <button class="btn outline big" data-act="addrow">${svg('plus', 18, 2)} Add a set</button>
   </div>`;
 }
 
 function setRowsHTML(w, item) {
-  const ex = D.exercises[item.exId]; const ss = setsOf(w, item.exId);
+  const ex = D.exercises[item.exId]; const rows = ensureRows(w, item); const sel = selectedRow(w, item);
   const counter = { L: 0, R: 0, x: 0 };
-  return ss.map((s) => {
-    const k = s.side || 'x'; counter[k] += 1;
-    const val = [s.w != null ? (ex.type === 'bwkg' ? (s.w ? 'BW+' + fmtW(s.w) : 'BW') : fmtW(s.w) + ' kg') : '', s.r != null ? s.r + ' reps' : '', s.t != null ? fmtT(s.t) : '', s.d != null ? s.d + ' m' : ''].filter(Boolean).join(' × ');
-    return `<div class="set-row"><span class="n">${counter[k]}</span>${s.side ? `<span class="badge ${s.side}">${s.side}</span>` : '<span></span>'}<span class="v">${val}</span>${s.feel ? `<span class="muted sm">${s.feel}</span>` : '<span></span>'}<button class="icon-btn sm" aria-label="Delete this set" data-act="delset" data-id="${s.id}">${svg('close', 16)}</button></div>`;
+  return rows.map((r) => {
+    const k = r.side || 'x'; counter[k] += 1;
+    const val = [['wr', 'wd', 'wt'].includes(ex.type) ? fmtW(r.w) + ' kg' : ex.type === 'bwkg' ? (r.w ? 'BW+' + fmtW(r.w) : 'BW') : '', ['wr', 'bwkg', 'reps'].includes(ex.type) ? r.r + ' reps' : '', ['time', 'wt'].includes(ex.type) ? fmtT(r.t) : '', ex.type === 'wd' ? r.d + ' m' : ''].filter(Boolean).join(' × ');
+    const s = r.done && w.sets.find((x) => x.id === r.id);
+    const label = 'Set ' + counter[k] + (r.side ? ' ' + (r.side === 'L' ? 'left' : 'right') : '');
+    return `<div class="set-row${r.done ? ' done' : ''}${sel && sel.id === r.id ? ' sel' : ''}">
+      <button class="row-main" data-act="selrow" data-id="${r.id}" aria-label="Edit ${label}"><span class="n">${counter[k]}</span>${r.side ? `<span class="badge ${r.side}">${r.side}</span>` : '<span></span>'}<span class="v">${val}</span>${s && s.feel ? `<span class="muted sm">${s.feel}</span>` : ''}</button>
+      <button class="check${r.done ? ' on' : ''}" role="checkbox" aria-checked="${r.done}" aria-label="${label} done" data-act="check" data-id="${r.id}">${svg('check', 18, 3)}</button>
+      <button class="icon-btn sm" aria-label="Remove ${label}" data-act="delrow" data-id="${r.id}">${svg('close', 16)}</button></div>`;
   }).join('');
 }
 
@@ -487,12 +520,12 @@ function viewSession() {
   }
   let lastBlock = null;
   const list = w.items.map((it, i) => {
-    const ex = D.exercises[it.exId]; const d = itemDone(w, it); const c = itemCounts(w, it); const t = itemTargets(it);
+    const ex = D.exercises[it.exId]; const d = itemDone(w, it); const c = itemCounts(w, it);
     const head = it.block !== lastBlock ? `<span class="eyebrow blk">${esc((it.block || '').toUpperCase())}</span>` : ''; lastBlock = it.block;
     return `${head}<button class="ex-row${i === w.cur ? ' on' : ''}${d ? ' done' : ''}" data-act="cur" data-i="${i}">
       <span class="tick">${d ? svg('check', 14, 3) : ''}</span><i class="dot" style="background:${CATS[ex.cat]}"></i>
       <span class="ex-name"><b>${esc(ex.name)}</b><small>${esc(prescShort(it.presc, ex) || TYPES[ex.type])}</small></span>
-      <span class="muted sm">${t.total ? c.n + '/' + t.total : c.n}</span></button>`;
+      <span class="muted sm">${c.n}/${c.total}</span></button>`;
   }).join('');
   return `<header class="top sess-top"><button class="icon-btn" aria-label="Back to today" data-act="go" data-v="today">${svg('back')}</button>
       <div class="grow"><div class="strong">${esc(w.name.split(' — ')[0])}</div><span class="muted sm">${w.planId ? 'Cycle ' + esc(w.cycle) + ' · Week ' + w.week + (w.light ? ' · light' : '') + (w.match ? ' · match version' : '') + ' · ' : ''}${mins} min</span></div>
@@ -596,21 +629,23 @@ document.addEventListener('click', (ev) => {
     case 'free': startWorkout(null, null, {}); break;
     case 'run': { toggleRun(iso()); save(); render(); break; }
     case 'setplan': D.settings.activePlan = b.dataset.v; D.settings.upd = Date.now(); save(); UI.sheet = null; render(); break;
-    case 'cur': if (w) { w.cur = Number(b.dataset.i); UI.entry = null; UI.lastSet = null; save(); render(); window.scrollTo(0, 0); } break;
-    case 'step': {
-      const k = b.dataset.k, d = Number(b.dataset.d); const ex = w && D.exercises[w.items[w.cur].exId];
-      let v = (Number(UI.entry[k]) || 0) + d;
-      if (k === 'w' && ex) v = roundTo(Math.max(0, v), ex.equip === 'db' ? 'db' : ex.equip);
-      UI.entry[k] = Math.max(0, Math.round(v * 10) / 10); render(); break;
-    }
-    case 'side': {
-      UI.entry.side = b.dataset.v;
-      if (b.dataset.v === 'R' && w) { const lastL = setsOf(w, UI.entry.exId).filter((s) => s.side === 'L').slice(-1)[0]; if (lastL) { UI.entry.w = lastL.w; UI.entry.r = lastL.r; UI.entry.t = lastL.t; UI.entry.d = lastL.d; } }
-      render(); break;
-    }
-    case 'save': saveSet(); break;
-    case 'feel': { const s = w && w.sets.find((x) => x.id === UI.lastSet); if (s) { s.feel = s.feel === b.dataset.v ? null : b.dataset.v; save(); UI.entry = freshEntry(w, w.items[w.cur]); render(); } break; }
-    case 'delset': if (w) { const id = b.dataset.id; ask('Delete this set?', 'Delete', () => { w.sets = w.sets.filter((s) => s.id !== id); if (UI.lastSet === id) UI.lastSet = null; UI.entry = null; save(); UI.sheet = null; render(); }); } break;
+    case 'cur': if (w) { w.cur = Number(b.dataset.i); UI.selRow = null; UI.lastSet = null; save(); render(); window.scrollTo(0, 0); } break;
+    case 'selrow': UI.selRow = b.dataset.id; render(); break;
+    case 'check': if (w) toggleRow(w, w.items[w.cur], b.dataset.id); break;
+    case 'addrow': if (w) addRow(w, w.items[w.cur]); break;
+    case 'delrow': if (w) {
+      const item = w.items[w.cur]; const rows = ensureRows(w, item); const id = b.dataset.id; const r = rows.find((x) => x.id === id);
+      const drop = () => { item.rows = rows.filter((x) => x.id !== id); w.sets = w.sets.filter((s) => s.id !== id); if (UI.selRow === id) UI.selRow = null; if (UI.lastSet === id) UI.lastSet = null; save(); UI.sheet = null; render(); };
+      if (r && r.done) ask('Delete this set?', 'Delete', drop); else drop();
+    } break;
+    case 'step': if (w) {
+      const item = w.items[w.cur]; const ex = D.exercises[item.exId]; const row = selectedRow(w, item); const k = b.dataset.k;
+      let v = (Number(row[k]) || 0) + Number(b.dataset.d);
+      if (k === 'w') v = roundTo(Math.max(0, v), ex.equip);
+      editRow(w, item, k, Math.max(0, Math.round(v * 10) / 10));
+    } break;
+    case 'side': if (w) { const item = w.items[w.cur]; const row = selectedRow(w, item); if (row) { row.side = b.dataset.v; row.touched = true; if (row.done) writeSet(w, D.exercises[item.exId], row); save(); render(); } } break;
+    case 'feel': if (w && UI.lastSet) applyFeel(w, w.items[w.cur], UI.lastSet, b.dataset.v); break;
     case 'confirm-ok': { const c = UI.confirm; UI.confirm = null; UI.sheet = null; if (c && c.cb) c.cb(); else render(); break; }
     case 'finish': finishWorkout(); break;
     case 'rest-skip': stopRest(); break;
@@ -644,7 +679,7 @@ document.addEventListener('click', (ev) => {
 });
 document.addEventListener('change', (ev) => {
   const t = ev.target;
-  if (t.dataset && t.dataset.in && UI.entry && t.dataset.in !== 'pq') { UI.entry[t.dataset.in] = Math.max(0, Number(String(t.value).replace(',', '.')) || 0); render(); }
+  if (t.dataset && t.dataset.in && t.dataset.in !== 'pq') { const w = active(); if (w && w.items[w.cur]) editRow(w, w.items[w.cur], t.dataset.in, Math.max(0, Number(String(t.value).replace(',', '.')) || 0)); }
   if (t.dataset && t.dataset.set) { D.settings[t.dataset.set] = t.checked; save(); }
 });
 document.addEventListener('input', (ev) => {
