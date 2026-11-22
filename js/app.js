@@ -1,7 +1,7 @@
 /* Peak — app logic (vanilla JS, no build step). */
 'use strict';
 
-const APP_VERSION = '0.2.0-dev';
+const APP_VERSION = '0.3.0-dev';
 const STORE_KEY = 'peak.v1';
 
 /* ---------- helpers ---------- */
@@ -51,7 +51,13 @@ function load() {
   if (D.settings.goalWeight == null) D.settings.goalWeight = 76;
   Object.values(D.progress).forEach((pr) => { if (!pr.since) pr.since = iso(new Date(D.created || Date.now())); if (!pr.csince) pr.csince = pr.since; });
 }
+function toggleRun(k) {
+  if (!D.runsOff) D.runsOff = {};
+  if (D.runs[k]) { delete D.runs[k]; D.runsOff[k] = Date.now(); } else { D.runs[k] = Date.now(); delete D.runsOff[k]; }
+}
 function save() {
+  const a = D.active && D.workouts.find((w) => w.id === D.active); if (a) a.upd = Date.now();
+  if (typeof onLocalChange === 'function') onLocalChange();
   try { localStorage.setItem(STORE_KEY, JSON.stringify(D)); } catch (e) { toast('Could not save on this device'); }
 }
 
@@ -245,16 +251,17 @@ function saveSet() {
 function finishWorkout() {
   const w = active(); if (!w) return;
   if (!w.sets.length) {
-    ask('No set logged. Discard this session?', 'Discard', () => { D.workouts = D.workouts.filter((x) => x.id !== w.id); D.active = null; save(); stopRest(); releaseWake(); go('today'); });
+    ask('No set logged. Discard this session?', 'Discard', () => { (D.deleted = D.deleted || {})[w.id] = Date.now(); D.workouts = D.workouts.filter((x) => x.id !== w.id); D.active = null; save(); stopRest(); releaseWake(); go('today'); });
     return;
   }
   ask('Finish and save this session?', 'Finish', () => closeWorkout(w));
 }
 function closeWorkout(w) {
-  w.end = Date.now(); D.active = null;
+  w.end = Date.now(); w.upd = w.end; D.active = null;
   if (w.planId) {
     const plan = D.plans[w.planId]; const pr = progOf(w.planId);
     if (pr.week === w.week) pr.done[w.sessionId] = true;
+    pr.upd = Date.now();
     const req = plan.sessions.filter((s) => s.required);
     if (req.length && req.every((s) => pr.done[s.id])) {
       pr.done = {}; pr.week += 1; pr.since = iso();
@@ -360,7 +367,7 @@ function viewToday() {
   }
   const ran = !!D.runs[iso()];
   const recent = D.workouts.filter((x) => x.end).slice(-3).reverse();
-  return `<header class="top"><div><span class="muted sm">${longDate(iso())}</span><h1>Today</h1></div><button class="icon-btn" aria-label="More options" data-act="sheet" data-v="more">${svg('more')}</button></header>
+  return `<header class="top"><div><span class="muted sm">${longDate(iso())}</span><h1>Today</h1></div><div class="row">${typeof syncChip === 'function' ? syncChip() : ''}<button class="icon-btn" aria-label="More options" data-act="sheet" data-v="more">${svg('more')}</button></div></header>
   <div class="today-grid">
     <div class="col">
       <section class="card">
@@ -483,10 +490,11 @@ function sheetHTML() {
     body = `<h2>Settings & data</h2>
       <label class="toggle"><span><b>Sound at end of rest</b></span><input type="checkbox" data-set="sound" ${D.settings.sound ? 'checked' : ''}></label>
       <label class="toggle"><span><b>Vibrate at end of rest</b></span><input type="checkbox" data-set="vibrate" ${D.settings.vibrate ? 'checked' : ''}></label>
+      ${typeof syncSettings === 'function' ? syncSettings() : ''}
       <button class="list-btn" data-act="export"><span><b>Export my data</b><small>Download a JSON backup</small></span></button>
       <label class="list-btn"><span><b>Import a backup</b><small>Replaces the data on this device</small></span><input type="file" accept="application/json" id="import-file" hidden></label>
       <button class="list-btn danger" data-act="reset"><span><b>Reset this device</b><small>Deletes every session stored here</small></span></button>
-      <p class="muted sm">Peak ${APP_VERSION} · data stored on this device · Google Drive sync comes next.</p>`;
+      <p class="muted sm">Peak ${APP_VERSION}</p>`;
   } else if (UI.sheet === 'picker') {
     const q = UI.pq.trim().toLowerCase();
     const list = Object.values(D.exercises).filter((e) => (!UI.pcat || e.cat === UI.pcat) && (!q || e.name.toLowerCase().includes(q))).sort((a, b) => a.name.localeCompare(b.name));
@@ -543,8 +551,8 @@ document.addEventListener('click', (ev) => {
     }
     case 'start-confirm': { const m = $('#match-cb'); startWorkout(activePlan().id, UI.pending, { match: !!(m && m.checked) }); break; }
     case 'free': startWorkout(null, null, {}); break;
-    case 'run': { const k = iso(); if (D.runs[k]) delete D.runs[k]; else D.runs[k] = true; save(); render(); break; }
-    case 'setplan': D.settings.activePlan = b.dataset.v; save(); UI.sheet = null; render(); break;
+    case 'run': { toggleRun(iso()); save(); render(); break; }
+    case 'setplan': D.settings.activePlan = b.dataset.v; D.settings.upd = Date.now(); save(); UI.sheet = null; render(); break;
     case 'cur': if (w) { w.cur = Number(b.dataset.i); UI.entry = null; UI.lastSet = null; save(); render(); window.scrollTo(0, 0); } break;
     case 'step': {
       const k = b.dataset.k, d = Number(b.dataset.d); const ex = w && D.exercises[w.items[w.cur].exId];
@@ -568,13 +576,13 @@ document.addEventListener('click', (ev) => {
       const db = $('#rest-default'); if (db && REST.exId && REST.base > 0 && REST.base !== D.exercises[REST.exId].rest) { db.hidden = false; db.textContent = 'Default ' + fmtT(REST.base); }
       break;
     }
-    case 'rest-default': if (REST.exId && D.exercises[REST.exId]) { D.exercises[REST.exId].rest = REST.base; save(); b.hidden = true; toast('New default rest for ' + D.exercises[REST.exId].name + ': ' + fmtT(REST.base)); } break;
+    case 'rest-default': if (REST.exId && D.exercises[REST.exId]) { D.exercises[REST.exId].rest = REST.base; D.exercises[REST.exId].upd = Date.now(); save(); b.hidden = true; toast('New default rest for ' + D.exercises[REST.exId].name + ': ' + fmtT(REST.base)); } break;
     case 'pcat': UI.pcat = b.dataset.v || null; render(); break;
     case 'addex': if (w) { w.items.push({ exId: b.dataset.v, block: 'Added', presc: null }); w.cur = w.items.length - 1; UI.entry = null; UI.lastSet = null; save(); } UI.sheet = null; render(); break;
     case 'newex-save': {
       const name = ($('#nx-name').value || '').trim(); if (!name) { toast('Give the exercise a name'); break; }
       const e = { id: 'x' + uid(), name, cat: $('#nx-cat').value, type: $('#nx-type').value, equip: $('#nx-eq').value, uni: $('#nx-uni').checked, rest: Math.max(0, Number($('#nx-rest').value) || 0) };
-      D.exercises[e.id] = e;
+      e.upd = Date.now(); D.exercises[e.id] = e;
       if (w) { w.items.push({ exId: e.id, block: 'Added', presc: null }); w.cur = w.items.length - 1; UI.entry = null; }
       save(); UI.sheet = null; toast(name + ' created'); render(); break;
     }

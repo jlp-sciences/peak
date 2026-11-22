@@ -280,7 +280,7 @@ document.addEventListener('click', (ev) => {
   switch (b.dataset.act) {
     case 'cal-month': { const [y, m] = UI.calMonth.split('-').map(Number); const d = new Date(y, m - 1 + Number(b.dataset.d), 1); UI.calMonth = iso(d).slice(0, 7); render(); break; }
     case 'cal-day': UI.calSel = b.dataset.d; if (UI.calSel.slice(0, 7) !== UI.calMonth) UI.calMonth = UI.calSel.slice(0, 7); render(); break;
-    case 'cal-run': { const k = UI.calSel || iso(); if (D.runs[k]) delete D.runs[k]; else D.runs[k] = true; save(); render(); break; }
+    case 'cal-run': { toggleRun(UI.calSel || iso()); save(); render(); break; }
     case 'ex-cat': UI.exCat = v || null; render(); break;
     case 'open-ex': UI.exId = v; UI.exTab = 'history'; UI.metric = null; go('exercise'); break;
     case 'ex-tab': UI.exTab = v; render(); break;
@@ -290,10 +290,10 @@ document.addEventListener('click', (ev) => {
     case 'measure-save': {
       const num = (id) => { const x = $(id).value; return x === '' ? null : Number(String(x).replace(',', '.')); };
       const date = $('#ms-date').value || iso(); const weight = num('#ms-w'); const waist = num('#ms-waist'); const goal = num('#ms-goal');
-      if (goal) D.settings.goalWeight = goal;
+      if (goal) { D.settings.goalWeight = goal; D.settings.upd = Date.now(); }
       if (weight || waist) {
         const ex = D.body.measures.find((x) => x.date === date);
-        if (ex) { if (weight) ex.weight = weight; if (waist) ex.waist = waist; } else D.body.measures.push({ date, weight, waist });
+        if (ex) { if (weight) ex.weight = weight; if (waist) ex.waist = waist; ex.upd = Date.now(); } else D.body.measures.push({ date, weight, waist, upd: Date.now() });
       }
       save(); UI.sheet = null; toast('Saved'); render(); break;
     }
@@ -303,13 +303,13 @@ document.addEventListener('click', (ev) => {
       if (!any) { toast('Nothing to save'); break; }
       const date = $('#ts-date').value || iso();
       const old = D.body.tests.find((x) => x.date === date);
-      if (old) Object.assign(old.values, values); else D.body.tests.push({ date, values });
+      if (old) { Object.assign(old.values, values); old.upd = Date.now(); } else D.body.tests.push({ date, values, upd: Date.now() });
       UI.testCol = 0; save(); UI.sheet = null; toast('Tests saved'); if (UI.view !== 'body') go('body'); else render(); break;
     }
     case 'editex-save': {
       const e = D.exercises[UI.exId]; if (!e) break;
       const name = ($('#nx-name').value || '').trim(); if (!name) { toast('Give the exercise a name'); break; }
-      Object.assign(e, { name, cat: $('#nx-cat').value, type: $('#nx-type').value, equip: $('#nx-eq').value, uni: $('#nx-uni').checked, rest: Math.max(0, Number($('#nx-rest').value) || 0) });
+      Object.assign(e, { upd: Date.now(), name, cat: $('#nx-cat').value, type: $('#nx-type').value, equip: $('#nx-eq').value, uni: $('#nx-uni').checked, rest: Math.max(0, Number($('#nx-rest').value) || 0) });
       save(); UI.sheet = null; toast('Exercise updated'); render(); break;
     }
     default: break;

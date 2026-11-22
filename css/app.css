@@ -240,3 +240,7 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px s
   .cal-wrap, .an-grid { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); gap: 16px; align-items: start; }
   .cal-day { height: 72px; }
 }
+
+/* sync */
+.sync-chip { display: inline-flex; align-items: center; gap: 6px; height: 36px; padding: 0 12px; border-radius: 999px; border: 1px solid var(--line); background: transparent; color: var(--soft); font-size: 12px; font-weight: 600; white-space: nowrap; }
+.sync-chip.warn { border-color: var(--R); color: var(--Rt); }
