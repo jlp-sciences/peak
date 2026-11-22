@@ -242,10 +242,12 @@ function saveSet() {
 function finishWorkout() {
   const w = active(); if (!w) return;
   if (!w.sets.length) {
-    if (!confirm('No set logged. Discard this session?')) return;
-    D.workouts = D.workouts.filter((x) => x.id !== w.id); D.active = null; save(); stopRest(); releaseWake(); go('today'); return;
+    ask('No set logged. Discard this session?', 'Discard', () => { D.workouts = D.workouts.filter((x) => x.id !== w.id); D.active = null; save(); stopRest(); releaseWake(); go('today'); });
+    return;
   }
-  if (!confirm('Finish and save this session?')) return;
+  ask('Finish and save this session?', 'Finish', () => closeWorkout(w));
+}
+function closeWorkout(w) {
   w.end = Date.now(); D.active = null;
   if (w.planId) {
     const plan = D.plans[w.planId]; const pr = progOf(w.planId);
@@ -306,6 +308,7 @@ function releaseWake() { try { if (wakeLock) wakeLock.release(); } catch (e) { /
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') { keepAwake(); tickRest(); } });
 
 /* ---------- UI state ---------- */
+function ask(msg, ok, cb) { UI.confirm = { msg, ok, cb }; UI.sheet = 'confirm'; render(); }
 const UI = { view: 'today', entry: null, lastSet: null, sheet: null, pq: '', pcat: null, expanded: null };
 function go(view) { UI.view = view; UI.sheet = null; render(); window.scrollTo(0, 0); }
 function toast(msg) {
@@ -480,7 +483,9 @@ function sheetHTML() {
   if (!UI.sheet) return '';
   let body = '';
   const plan = activePlan(); const pr = progOf(plan.id);
-  if (UI.sheet === 'pick') {
+  if (UI.sheet === 'confirm' && UI.confirm) {
+    body = `<h2>${esc(UI.confirm.msg)}</h2><div class="quick"><button class="btn outline" data-act="close">Cancel</button><button class="btn primary" data-act="confirm-ok">${esc(UI.confirm.ok)}</button></div>`;
+  } else if (UI.sheet === 'pick') {
     body = `<h2>Sessions of this week</h2>${plan.sessions.map((s) => `<button class="list-btn" data-act="start" data-s="${s.id}"><span><b>${esc(s.name)} — ${esc(s.title)}</b><small>${s.required ? 'Required' : 'Optional'}${pr.done[s.id] ? ' · done ✓' : ''}</small></span></button>`).join('')}`;
   } else if (UI.sheet === 'match') {
     const s = plan.sessions.find((x) => x.id === UI.pending);
@@ -567,7 +572,8 @@ document.addEventListener('click', (ev) => {
     }
     case 'save': saveSet(); break;
     case 'feel': { const s = w && w.sets.find((x) => x.id === UI.lastSet); if (s) { s.feel = s.feel === b.dataset.v ? null : b.dataset.v; save(); UI.entry = freshEntry(w, w.items[w.cur]); render(); } break; }
-    case 'delset': if (w && confirm('Delete this set?')) { w.sets = w.sets.filter((s) => s.id !== b.dataset.id); if (UI.lastSet === b.dataset.id) UI.lastSet = null; UI.entry = null; save(); render(); } break;
+    case 'delset': if (w) { const id = b.dataset.id; ask('Delete this set?', 'Delete', () => { w.sets = w.sets.filter((s) => s.id !== id); if (UI.lastSet === id) UI.lastSet = null; UI.entry = null; save(); UI.sheet = null; render(); }); } break;
+    case 'confirm-ok': { const c = UI.confirm; UI.confirm = null; UI.sheet = null; if (c && c.cb) c.cb(); else render(); break; }
     case 'finish': finishWorkout(); break;
     case 'rest-skip': stopRest(); break;
     case 'rest-add': REST.end += Number(b.dataset.d) * 1000; REST.total = Math.max(REST.total, (REST.end - Date.now()) / 1000); tickRest(); break;
@@ -586,7 +592,7 @@ document.addEventListener('click', (ev) => {
       link.href = url; link.download = 'peak-backup-' + iso() + '.json'; document.body.appendChild(link); link.click(); link.remove();
       setTimeout(() => URL.revokeObjectURL(url), 2000); break;
     }
-    case 'reset': if (confirm('Delete every session stored on this device?')) { D = seed(); save(); stopRest(); UI.sheet = null; go('today'); } break;
+    case 'reset': ask('Delete every session stored on this device?', 'Delete all', () => { D = seed(); save(); stopRest(); go('today'); }); break;
     default: break;
   }
 });
@@ -606,7 +612,10 @@ function importFile(ev) {
   const file = ev.target.files && ev.target.files[0]; if (!file) return;
   const r = new FileReader();
   r.onload = () => {
-    try { const x = JSON.parse(r.result); if (!x || x.v !== 1 || !x.exercises) throw new Error('bad'); if (!confirm('Replace the data on this device with this backup?')) return; D = x; save(); UI.sheet = null; go('today'); toast('Backup imported'); } catch (e) { toast('This file is not a Peak backup'); }
+    let x = null;
+    try { x = JSON.parse(r.result); } catch (e) { x = null; }
+    if (!x || x.v !== 1 || !x.exercises) { toast('This file is not a Peak backup'); return; }
+    ask('Replace the data on this device with this backup?', 'Replace', () => { D = x; save(); go('today'); toast('Backup imported'); });
   };
   r.readAsText(file);
 }
