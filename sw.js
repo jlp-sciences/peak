@@ -1,6 +1,6 @@
 /* Peak service worker — offline app shell. Bump VERSION on every release. */
-const VERSION = 'peak-0.4.0';
-const SHELL = ['./', 'index.html', 'css/app.css', 'js/data.js', 'js/app.js', 'js/screens.js', 'js/sync.js', 'manifest.webmanifest', 'icons/icon.svg', 'icons/icon-192.png', 'icons/icon-512.png'];
+const VERSION = 'peak-0.4.1';
+const SHELL = ['./', 'index.html', 'css/app.css', 'js/data.js', 'js/guides.js', 'js/app.js', 'js/screens.js', 'js/sync.js', 'manifest.webmanifest', 'icons/icon.svg', 'icons/icon-192.png', 'icons/icon-512.png'];
 
 self.addEventListener('install', (e) => {
   // {cache: 'reload'} so the new version never installs stale files from the HTTP cache

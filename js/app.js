@@ -1,7 +1,7 @@
 /* Peak — app logic (vanilla JS, no build step). */
 'use strict';
 
-const APP_VERSION = '0.4.0';
+const APP_VERSION = '0.4.1';
 const STORE_KEY = 'peak.v1';
 
 /* ---------- helpers ---------- */
@@ -440,7 +440,7 @@ function viewSession() {
   if (item) {
     const ex = D.exercises[item.exId];
     detail = `<section class="card current">
-      <div class="row between top-al"><div><span class="eyebrow"><i class="dot" style="background:${CATS[ex.cat]}"></i> ${esc(item.block || ex.cat)}</span><h2>${esc(ex.name)}</h2><p class="soft">${esc(prescText(item.presc, ex))}</p></div>${ex.uni ? '<span class="tag">L first</span>' : ''}</div>
+      <div class="row between top-al"><div><span class="eyebrow"><i class="dot" style="background:${CATS[ex.cat]}"></i> ${esc(item.block || ex.cat)}</span><h2>${esc(ex.name)}</h2><p class="soft">${esc(prescText(item.presc, ex))}</p></div><div class="row">${ex.uni ? '<span class="tag">L first</span>' : ''}${typeof GUIDES !== 'undefined' && GUIDES[ex.id] ? `<button class="icon-btn" aria-label="How to do ${esc(ex.name)}" data-act="guide" data-v="${ex.id}"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg></button>` : ''}</div></div>
       ${item.presc && item.presc.cue ? `<p class="cue">${esc(item.presc.cue)}</p>` : ''}
       <div class="sets">${setRowsHTML(w, item)}</div>
       ${entryHTML(w, item)}

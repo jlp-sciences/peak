@@ -190,7 +190,7 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px s
 .list-card { gap: 0; padding: 6px 12px; }
 .ex-line { display: flex; align-items: center; gap: 10px; min-height: 58px; border: 0; border-bottom: 1px solid var(--card2); background: none; text-align: left; width: 100%; }
 .ex-line:last-child { border-bottom: 0; }
-.tabs { display: grid; grid-template-columns: repeat(3, 1fr); border-bottom: 1px solid var(--card2); margin-bottom: 12px; }
+.tabs { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; border-bottom: 1px solid var(--card2); margin-bottom: 12px; }
 .tabs button { height: 46px; background: none; border: 0; border-bottom: 3px solid transparent; color: var(--muted); font-weight: 700; font-size: 13px; letter-spacing: .8px; text-transform: uppercase; }
 .tabs button.on { color: var(--text); border-bottom-color: var(--text); }
 .seg-ctl { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 4px; padding: 4px; border-radius: 12px; background: var(--card); }
@@ -245,3 +245,14 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px s
 .sync-chip { display: inline-flex; align-items: center; gap: 6px; height: 36px; padding: 0 12px; border-radius: 999px; border: 1px solid var(--line); background: transparent; color: var(--soft); font-size: 12px; font-weight: 600; white-space: nowrap; }
 .sync-chip.warn { border-color: var(--R); color: var(--Rt); }
 .pass { color: #7BE0A5; } .fail { color: #FF8A8A; }
+
+/* guides */
+.frames { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.frame { margin: 0; display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.frame figcaption { font-size: 11px; font-weight: 700; letter-spacing: .8px; color: var(--muted); text-transform: uppercase; }
+.frame svg { display: block; width: 100%; height: auto; background: var(--bg2); border-radius: 12px; }
+.card .frame svg { background: var(--bg); }
+.g-text { display: flex; flex-direction: column; gap: 10px; font-size: 14px; line-height: 1.45; margin-top: 4px; }
+.g-row { display: flex; flex-direction: column; gap: 2px; }
+.eyebrow.ben { color: var(--Lt); }
+@media (min-width: 760px) { .frames { grid-template-columns: repeat(3, minmax(0, 1fr)); } }

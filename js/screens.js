@@ -78,6 +78,14 @@ function calendarView() {
   </div>`;
 }
 
+/* ---------- guides ---------- */
+function guideHTML(exId) {
+  const g = typeof GUIDES !== 'undefined' && GUIDES[exId]; if (!g) return '';
+  const frames = g.frames.map(([label, s], i) => `<figure class="frame"><figcaption>${i + 1} · ${esc(label)}</figcaption><svg viewBox="0 0 340 230" role="img" aria-label="${esc(label)}">${GUIDE_DEFS}${s}</svg></figure>`).join('');
+  const row = (k, v, cls) => `<div class="g-row"><span class="eyebrow${cls ? ' ' + cls : ''}">${k}</span><span>${esc(v)}</span></div>`;
+  return `<div class="frames">${frames}</div><div class="g-text">${row('SETUP', g.setup)}${row('MOVE', g.move)}${row('KEY', g.key)}${row('BENEFIT', g.benefit, 'ben')}</div>`;
+}
+
 /* ---------- exercises ---------- */
 function exercisesView() {
   const counts = {}; doneWorkouts().forEach((w) => w.sets.forEach((s) => { counts[s.exId] = (counts[s.exId] || 0) + 1; }));
@@ -112,10 +120,13 @@ function exerciseView() {
   const ex = D.exercises[UI.exId]; if (!ex) { UI.view = 'exercises'; return exercisesView(); }
   const metrics = METRICS_BY_TYPE[ex.type]; if (!metrics.includes(UI.metric)) UI.metric = metrics[0];
   const ws = doneWorkouts().filter((w) => w.sets.some((s) => s.exId === ex.id)).reverse();
-  const tabs = [['history', 'History'], ['graph', 'Graph'], ['records', 'Records']];
+  const tabs = (typeof GUIDES !== 'undefined' && GUIDES[ex.id] ? [['guide', 'Guide']] : []).concat([['history', 'History'], ['graph', 'Graph'], ['records', 'Records']]);
+  if (UI.exTab === 'guide' && !GUIDES[ex.id]) UI.exTab = 'history';
   let body = '';
   const fmtSet = (s) => [s.w != null ? (ex.type === 'bwkg' ? (s.w ? 'BW+' + fmtW(s.w) : 'BW') : fmtW(s.w)) : null, s.r != null ? s.r : null, s.t != null ? fmtT(s.t) : null, s.d != null ? s.d + ' m' : null].filter((x) => x != null).join(' × ');
-  if (UI.exTab === 'history') {
+  if (UI.exTab === 'guide') {
+    body = guideHTML(ex.id);
+  } else if (UI.exTab === 'history') {
     body = ws.map((w) => {
       const ss = setsOf(w, ex.id);
       const col = (side) => ss.filter((s) => s.side === side).map((s) => `<span>${fmtSet(s)}</span>`).join('');
@@ -242,6 +253,7 @@ function bodyView() {
 
 /* ---------- sheets ---------- */
 function extraSheet(name) {
+  if (name === 'guide') { const e = D.exercises[UI.guideEx]; return `<h2>${esc(e ? e.name : '')}</h2>${guideHTML(UI.guideEx)}`; }
   if (name === 'measure') {
     return `<h2>Log weight / waist</h2>
       <label class="field">Date<input id="ms-date" type="date" value="${iso()}"></label>
@@ -282,7 +294,8 @@ document.addEventListener('click', (ev) => {
     case 'cal-day': UI.calSel = b.dataset.d; if (UI.calSel.slice(0, 7) !== UI.calMonth) UI.calMonth = UI.calSel.slice(0, 7); render(); break;
     case 'cal-run': { toggleRun(UI.calSel || iso()); save(); render(); break; }
     case 'ex-cat': UI.exCat = v || null; render(); break;
-    case 'open-ex': UI.exId = v; UI.exTab = 'history'; UI.metric = null; go('exercise'); break;
+    case 'open-ex': UI.exId = v; UI.exTab = (typeof GUIDES !== 'undefined' && GUIDES[v]) ? 'guide' : 'history'; UI.metric = null; go('exercise'); break;
+    case 'guide': UI.guideEx = v; UI.sheet = 'guide'; render(); break;
     case 'ex-tab': UI.exTab = v; render(); break;
     case 'metric': UI.metric = v; render(); break;
     case 'an-period': UI.anPeriod = v; render(); break;
