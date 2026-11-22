@@ -1,6 +1,6 @@
 /* Peak service worker — offline app shell. Bump VERSION on every release. */
-const VERSION = 'peak-0.1.0-dev';
-const SHELL = ['./', 'index.html', 'css/app.css', 'js/data.js', 'js/app.js', 'manifest.webmanifest', 'icons/icon.svg', 'icons/icon-192.png', 'icons/icon-512.png'];
+const VERSION = 'peak-0.2.0-dev';
+const SHELL = ['./', 'index.html', 'css/app.css', 'js/data.js', 'js/app.js', 'js/screens.js', 'manifest.webmanifest', 'icons/icon.svg', 'icons/icon-192.png', 'icons/icon-512.png'];
 
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(VERSION).then((c) => c.addAll(SHELL)).then(() => self.skipWaiting()));

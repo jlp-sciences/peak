@@ -1,7 +1,7 @@
 /* Peak — app logic (vanilla JS, no build step). */
 'use strict';
 
-const APP_VERSION = '0.1.0-dev';
+const APP_VERSION = '0.2.0-dev';
 const STORE_KEY = 'peak.v1';
 
 /* ---------- helpers ---------- */
@@ -38,8 +38,8 @@ let D = null;
 function seed() {
   const ex = {}; SEED_EXERCISES.forEach((e) => { ex[e.id] = JSON.parse(JSON.stringify(e)); });
   const plans = {}; SEED_PLANS.forEach((p) => { plans[p.id] = JSON.parse(JSON.stringify(p)); });
-  const progress = {}; Object.keys(plans).forEach((id) => { progress[id] = { cycle: 0, week: 1, done: {} }; });
-  return { v: 1, created: Date.now(), settings: { activePlan: 'tt-season', sound: true, vibrate: true }, exercises: ex, plans, progress, workouts: [], runs: {}, active: null };
+  const progress = {}; Object.keys(plans).forEach((id) => { progress[id] = { cycle: 0, week: 1, done: {}, since: iso(), csince: iso() }; });
+  return { v: 1, created: Date.now(), settings: { activePlan: 'tt-season', sound: true, vibrate: true, goalWeight: 76 }, exercises: ex, plans, progress, workouts: [], runs: {}, body: { measures: [], tests: [] }, active: null };
 }
 function load() {
   try { D = JSON.parse(localStorage.getItem(STORE_KEY)); } catch (e) { D = null; }
@@ -47,6 +47,9 @@ function load() {
   // add seed exercises / plans that appeared in a newer version, without touching user edits
   SEED_EXERCISES.forEach((e) => { if (!D.exercises[e.id]) D.exercises[e.id] = JSON.parse(JSON.stringify(e)); });
   SEED_PLANS.forEach((p) => { if (!D.plans[p.id]) { D.plans[p.id] = JSON.parse(JSON.stringify(p)); D.progress[p.id] = { cycle: 0, week: 1, done: {} }; } });
+  if (!D.body) D.body = { measures: [], tests: [] };
+  if (D.settings.goalWeight == null) D.settings.goalWeight = 76;
+  Object.values(D.progress).forEach((pr) => { if (!pr.since) pr.since = iso(new Date(D.created || Date.now())); if (!pr.csince) pr.csince = pr.since; });
 }
 function save() {
   try { localStorage.setItem(STORE_KEY, JSON.stringify(D)); } catch (e) { toast('Could not save on this device'); }
@@ -54,7 +57,7 @@ function save() {
 
 /* ---------- plan logic ---------- */
 const activePlan = () => D.plans[D.settings.activePlan];
-const progOf = (planId) => D.progress[planId] || (D.progress[planId] = { cycle: 0, week: 1, done: {} });
+const progOf = (planId) => D.progress[planId] || (D.progress[planId] = { cycle: 0, week: 1, done: {}, since: iso(), csince: iso() });
 function cycleOf(plan) { const p = progOf(plan.id); return plan.cycles[p.cycle % plan.cycles.length]; }
 function isLightWeek(plan) { const p = progOf(plan.id); return plan.lightLast && plan.weeks > 1 && p.week === plan.weeks; }
 
@@ -229,7 +232,7 @@ function saveSet() {
   w.sets.push(s); save();
   UI.lastSet = (s.side !== 'R' && s.w != null) ? s.id : null;
   const goR = ex.uni && s.side === 'L' && (() => { const c = itemCounts(w, item), t = itemTargets(item); return c.R < c.L && (!t.total || c.R < t.R); })();
-  if (!goR && ex.rest) startRest(ex.rest, ex.name);
+  if (!goR && ex.rest) startRest(ex.rest, ex.name, ex.id);
   if (itemDone(w, item)) {
     const nxt = w.items.findIndex((it, i) => i > w.cur && !itemDone(w, it));
     const any = nxt >= 0 ? nxt : w.items.findIndex((it) => !itemDone(w, it));
@@ -254,8 +257,8 @@ function closeWorkout(w) {
     if (pr.week === w.week) pr.done[w.sessionId] = true;
     const req = plan.sessions.filter((s) => s.required);
     if (req.length && req.every((s) => pr.done[s.id])) {
-      pr.done = {}; pr.week += 1;
-      if (pr.week > plan.weeks) { pr.week = 1; pr.cycle = (pr.cycle + 1) % plan.cycles.length; }
+      pr.done = {}; pr.week += 1; pr.since = iso();
+      if (pr.week > plan.weeks) { pr.week = 1; pr.cycle = (pr.cycle + 1) % plan.cycles.length; pr.csince = iso(); }
       toast('Week complete — on to ' + cycleOf(plan).key + ' · week ' + pr.week);
     } else toast('Session saved');
   } else toast('Session saved');
@@ -263,7 +266,7 @@ function closeWorkout(w) {
 }
 
 /* ---------- rest timer ---------- */
-const REST = { end: 0, total: 0, label: '', iv: null };
+const REST = { end: 0, total: 0, label: '', iv: null, exId: null, base: 0 };
 let audioCtx = null;
 function unlockAudio() { try { if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)(); if (audioCtx.state === 'suspended') audioCtx.resume(); } catch (e) { /* no audio */ } }
 function beep() {
@@ -278,8 +281,9 @@ function beep() {
     });
   } catch (e) { /* ignore */ }
 }
-function startRest(sec, label) {
-  REST.end = Date.now() + sec * 1000; REST.total = sec; REST.label = label || '';
+function startRest(sec, label, exId) {
+  REST.end = Date.now() + sec * 1000; REST.total = sec; REST.label = label || ''; REST.exId = exId || null; REST.base = sec;
+  const db = $('#rest-default'); if (db) db.hidden = true;
   clearInterval(REST.iv); REST.iv = setInterval(tickRest, 250); tickRest();
 }
 function stopRest() { clearInterval(REST.iv); REST.iv = null; REST.end = 0; const el = $('#rest'); if (el) el.hidden = true; }
@@ -317,9 +321,10 @@ function toast(msg) {
 }
 
 /* ---------- views ---------- */
+const navOn = (k) => UI.view === k || (k === 'exercises' && UI.view === 'exercise');
 function navHTML() {
   const items = [['today', 'Today'], ['calendar', 'Calendar'], ['exercises', 'Exercises'], ['analysis', 'Analysis'], ['body', 'Body']];
-  return `<nav class="nav" aria-label="Main"><div class="nav-logo">${LOGO(34)}</div>${items.map(([k, l]) => `<button class="nav-btn${UI.view === k ? ' on' : ''}" data-act="go" data-v="${k}" ${UI.view === k ? 'aria-current="page"' : ''}>${svg(k, 24)}<span>${l}</span></button>`).join('')}</nav>`;
+  return `<nav class="nav" aria-label="Main"><div class="nav-logo">${LOGO(34)}</div>${items.map(([k, l]) => `<button class="nav-btn${navOn(k) ? ' on' : ''}" data-act="go" data-v="${k}" ${navOn(k) ? 'aria-current="page"' : ''}>${svg(k, 24)}<span>${l}</span></button>`).join('')}</nav>`;
 }
 
 function catChips(items) {
@@ -371,6 +376,7 @@ function viewToday() {
         <button class="btn outline" data-act="free">${svg('plus', 18, 2)} Free session</button>
         <button class="btn ${ran ? 'filled' : 'outline'}" data-act="run" aria-pressed="${ran}">${svg('run', 18, 2)} ${ran ? 'Ran today ✓' : 'I ran today'}</button>
       </div>
+      ${isLightWeek(plan) ? `<section class="card hero"><span class="eyebrow">WEEK ${plan.weeks} · TESTS</span><p class="soft">Light week: log your tests (jumps, 5-10-5, row max reps, arms, weight).</p><button class="btn primary" data-act="sheet" data-v="tests">Log tests</button></section>` : ''}
       ${recent.length ? `<section class="card"><span class="eyebrow">RECENT</span>${recent.map((x) => `<div class="recent"><span>${esc(x.name.split(' — ')[0])}</span><span class="muted sm">${longDate(x.date)} · ${x.sets.length} sets</span></div>`).join('')}</section>` : ''}
     </div>
   </div>`;
@@ -457,27 +463,6 @@ function viewSession() {
     </div>`;
 }
 
-function viewCalendar() {
-  const ws = D.workouts.filter((w) => w.end).slice().reverse();
-  const runs = Object.keys(D.runs).sort().reverse();
-  return `<header class="top"><h1>Calendar</h1></header>
-  <section class="card"><span class="eyebrow">COMING NEXT</span><p class="muted">The month view arrives in the next step. Meanwhile, here is everything logged.</p></section>
-  <section class="card"><span class="eyebrow">SESSIONS</span>${ws.length ? ws.map((w) => `<div class="recent"><span>${esc(w.name)}</span><span class="muted sm">${longDate(w.date)} · ${w.sets.length} sets</span></div>`).join('') : '<p class="muted">Nothing yet.</p>'}</section>
-  <section class="card"><span class="eyebrow">RUNS</span>${runs.length ? runs.map((r) => `<div class="recent"><span>${svg('run', 18, 2)} Run</span><span class="muted sm">${longDate(r)}</span></div>`).join('') : '<p class="muted">No run logged yet.</p>'}</section>`;
-}
-
-function viewExercises() {
-  const byCat = {};
-  Object.values(D.exercises).forEach((e) => { (byCat[e.cat] = byCat[e.cat] || []).push(e); });
-  return `<header class="top"><h1>Exercises</h1><button class="icon-btn solid" aria-label="New exercise" data-act="sheet" data-v="newex">${svg('plus', 22, 2.4)}</button></header>
-  ${Object.keys(CATS).filter((c) => byCat[c]).map((c) => `<section class="card"><span class="eyebrow"><i class="dot" style="background:${CATS[c]}"></i> ${esc(c.toUpperCase())} · ${byCat[c].length}</span>
-    ${byCat[c].sort((a, b) => a.name.localeCompare(b.name)).map((e) => `<div class="recent"><span>${esc(e.name)}</span><span class="muted sm">${esc(TYPES[e.type])}${e.uni ? ' · L/R' : ''} · rest ${fmtT(e.rest || 0)}</span></div>`).join('')}</section>`).join('')}`;
-}
-
-function viewSoon(title, text) {
-  return `<header class="top"><h1>${title}</h1></header><section class="card"><span class="eyebrow">COMING NEXT</span><p class="muted">${text}</p></section>`;
-}
-
 /* ---------- sheets ---------- */
 function sheetHTML() {
   if (!UI.sheet) return '';
@@ -518,6 +503,8 @@ function sheetHTML() {
       <label class="field">Default rest (seconds)<input id="nx-rest" type="number" inputmode="numeric" value="90"></label>
       <label class="toggle"><span><b>Unilateral · track L / R</b><small>Left first, right matches</small></span><input type="checkbox" id="nx-uni"></label>
       <button class="btn primary big" data-act="newex-save">Save exercise</button>`;
+  } else if (typeof extraSheet === 'function') {
+    body = extraSheet(UI.sheet);
   }
   return `<div class="scrim" data-act="close"></div><div class="sheet" role="dialog" aria-modal="true"><button class="icon-btn sheet-x" aria-label="Close" data-act="close">${svg('close')}</button>${body}</div>`;
 }
@@ -525,14 +512,14 @@ function sheetHTML() {
 /* ---------- render ---------- */
 function render() {
   const views = {
-    today: viewToday, session: viewSession, calendar: viewCalendar, exercises: viewExercises,
-    analysis: () => viewSoon('Analysis', 'Sets by category, symmetry L ÷ R and records arrive in a later step. Your sets are already being recorded.'),
-    body: () => viewSoon('Body', 'Weight, waist and the week-4 tests table arrive in a later step.')
+    today: viewToday, session: viewSession, calendar: calendarView, exercises: exercisesView,
+    exercise: exerciseView, analysis: analysisView, body: bodyView
   };
   const app = $('#app');
   app.className = 'app view-' + UI.view;
   $('#main').innerHTML = (views[UI.view] || viewToday)();
   $('#navwrap').innerHTML = UI.view === 'session' ? '' : navHTML();
+  if (typeof afterRender === 'function') afterRender();
   $('#sheetwrap').innerHTML = sheetHTML();
   const f = $('#import-file'); if (f) f.addEventListener('change', importFile);
   if (UI.view === 'session') keepAwake();
@@ -576,7 +563,12 @@ document.addEventListener('click', (ev) => {
     case 'confirm-ok': { const c = UI.confirm; UI.confirm = null; UI.sheet = null; if (c && c.cb) c.cb(); else render(); break; }
     case 'finish': finishWorkout(); break;
     case 'rest-skip': stopRest(); break;
-    case 'rest-add': REST.end += Number(b.dataset.d) * 1000; REST.total = Math.max(REST.total, (REST.end - Date.now()) / 1000); tickRest(); break;
+    case 'rest-add': {
+      REST.end += Number(b.dataset.d) * 1000; REST.base += Number(b.dataset.d); REST.total = Math.max(REST.total, (REST.end - Date.now()) / 1000); tickRest();
+      const db = $('#rest-default'); if (db && REST.exId && REST.base > 0 && REST.base !== D.exercises[REST.exId].rest) { db.hidden = false; db.textContent = 'Default ' + fmtT(REST.base); }
+      break;
+    }
+    case 'rest-default': if (REST.exId && D.exercises[REST.exId]) { D.exercises[REST.exId].rest = REST.base; save(); b.hidden = true; toast('New default rest for ' + D.exercises[REST.exId].name + ': ' + fmtT(REST.base)); } break;
     case 'pcat': UI.pcat = b.dataset.v || null; render(); break;
     case 'addex': if (w) { w.items.push({ exId: b.dataset.v, block: 'Added', presc: null }); w.cur = w.items.length - 1; UI.entry = null; UI.lastSet = null; save(); } UI.sheet = null; render(); break;
     case 'newex-save': {
@@ -629,4 +621,6 @@ function boot() {
     navigator.serviceWorker.register('sw.js').catch(() => { /* offline cache unavailable */ });
   }
 }
-if (typeof window !== 'undefined' && !window.__PEAK_NO_BOOT__) boot();
+if (typeof window !== 'undefined' && !window.__PEAK_NO_BOOT__) {
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else setTimeout(boot, 0);
+}
