@@ -53,7 +53,29 @@ const SEED_EXERCISES = [
   { id: 'bprow', name: 'Single-arm backpack row', cat: 'Back', type: 'wr', uni: true, equip: 'none', rest: 90 },
   { id: 'pike', name: 'Pike push-up', cat: 'Shoulders', type: 'reps', uni: false, equip: 'none', rest: 90 },
   { id: 'bpcurl', name: 'Single-arm backpack curl', cat: 'Biceps', type: 'wr', uni: true, equip: 'none', rest: 60 },
-  { id: 'bandrot', name: 'Band / towel rotation', cat: 'Core', type: 'reps', uni: true, equip: 'none', rest: 60 }
+  { id: 'bandrot', name: 'Band / towel rotation', cat: 'Core', type: 'reps', uni: true, equip: 'none', rest: 60 },
+  // alternatives used by Replace
+  { id: 'goblet', name: 'Goblet squat', cat: 'Legs', type: 'wr', uni: false, equip: 'db', rest: 90 },
+  { id: 'legpress', name: 'Leg press', cat: 'Legs', type: 'wr', uni: false, equip: 'cable', rest: 120 },
+  { id: 'wallsit', name: 'Wall sit at TT depth', cat: 'Legs', type: 'time', uni: false, equip: 'none', rest: 90 },
+  { id: 'revlunge', name: 'Reverse lunge (DB)', cat: 'Legs', type: 'wr', uni: true, equip: 'db', rest: 90 },
+  { id: 'splitsquat', name: 'Split squat (DB)', cat: 'Legs', type: 'wr', uni: true, equip: 'db', rest: 90 },
+  { id: 'dbrdl', name: 'DB Romanian deadlift', cat: 'Legs', type: 'wr', uni: false, equip: 'db', rest: 90 },
+  { id: 'trapbar', name: 'Trap bar deadlift', cat: 'Legs', type: 'wr', uni: false, equip: 'bar', rest: 150 },
+  { id: 'farmer', name: 'Farmer carry', cat: 'Core', type: 'wd', uni: false, equip: 'db', rest: 60 },
+  { id: 'jumprope', name: 'Jump rope', cat: 'Power', type: 'time', uni: false, equip: 'none', rest: 60 },
+  { id: 'linehops', name: 'Lateral line hops', cat: 'Power', type: 'time', uni: false, equip: 'none', rest: 60 },
+  { id: 'mbslam', name: 'Med ball slam', cat: 'Power', type: 'wr', uni: false, equip: 'mb', rest: 90 },
+  { id: 'pushup', name: 'Push-up', cat: 'Chest', type: 'reps', uni: false, equip: 'none', rest: 90 },
+  { id: 'latpullbi', name: 'Lat pulldown', cat: 'Back', type: 'wr', uni: false, equip: 'cable', rest: 90 },
+  { id: 'invrow', name: 'Inverted row', cat: 'Back', type: 'reps', uni: false, equip: 'none', rest: 90 },
+  { id: 'chestrow', name: 'Chest-supported 1-arm DB row', cat: 'Back', type: 'wr', uni: true, equip: 'db', rest: 90 },
+  { id: 'kneelpress', name: 'Half-kneeling 1-arm DB press', cat: 'Shoulders', type: 'wr', uni: true, equip: 'db', rest: 120 },
+  { id: 'hammer', name: 'Single-arm hammer curl', cat: 'Biceps', type: 'wr', uni: true, equip: 'db', rest: 90 },
+  { id: 'bandpull', name: 'Band pull-apart', cat: 'Shoulders', type: 'reps', uni: false, equip: 'none', rest: 60 },
+  { id: 'bandpallof', name: 'Band Pallof press', cat: 'Core', type: 'reps', uni: true, equip: 'none', rest: 60 },
+  { id: 'deadbug', name: 'Dead bug', cat: 'Core', type: 'reps', uni: true, equip: 'none', rest: 60 },
+  { id: 'rowsprint', name: 'Rower sprints', cat: 'Conditioning', type: 'time', uni: false, equip: 'none', rest: 50 }
 ];
 
 const SEED_PLANS = [
@@ -144,3 +166,40 @@ const SEED_PLANS = [
     ]
   }
 ];
+
+/* Replace suggestions: [exercise id, why it fits] — same movement, other equipment. */
+const ALTS = {
+  pogo: [['jumprope', 'no space · rope'], ['linehops', 'bodyweight']],
+  skater: [['linehops', 'less space'], ['shuffle', 'bodyweight']],
+  accel10: [['shuffle', 'short space'], ['bikesprint', 'no space · bike']],
+  isosquat: [['wallsit', 'no rack'], ['goblet', 'dumbbells']],
+  squat: [['goblet', 'no rack · dumbbells'], ['legpress', 'machine'], ['bulgarian', 'dumbbells + bench']],
+  bulgarian: [['splitsquat', 'no bench'], ['revlunge', 'dumbbells only']],
+  kickstand: [['slrdl', 'dumbbells'], ['dbrdl', 'both legs']],
+  latlunge: [['revlunge', 'dumbbells'], ['splitsquat', 'dumbbells']],
+  suitcase: [['farmer', 'two dumbbells'], ['sideplank', 'no weight']],
+  sideplank: [['pallof', 'cable'], ['bandpallof', 'band']],
+  scoop: [['mbthrow', 'no wall · med ball'], ['cablerot', 'cable'], ['bandrot', 'band']],
+  plyopush: [['pushup', 'bodyweight']],
+  pullups: [['latpullbi', 'machine'], ['invrow', 'bar / rings']],
+  zpress: [['kneelpress', 'dumbbell'], ['pike', 'bodyweight']],
+  dbrow: [['cablerow', 'cable'], ['chestrow', 'incline bench'], ['invrow', 'bodyweight']],
+  latpull: [['pullups', 'pull-up bar'], ['dbrow', 'dumbbell'], ['latpullbi', 'two arms']],
+  curl: [['hammer', 'dumbbell'], ['bpcurl', 'backpack']],
+  facepull: [['bandpull', 'band']],
+  cablerot: [['bandrot', 'band'], ['mbthrow', 'med ball'], ['pallof', 'anti-rotation']],
+  pallof: [['bandpallof', 'band'], ['deadbug', 'floor'], ['sideplank', 'floor']],
+  switchjump: [['skater', 'lateral'], ['pogo', 'lower impact']],
+  shuffle: [['accel10', 'straight line'], ['skater', 'no space']],
+  mbthrow: [['scoop', 'wall'], ['cablerot', 'cable'], ['bandrot', 'band']],
+  deadlift: [['trapbar', 'trap bar'], ['dbrdl', 'dumbbells'], ['kickstand', 'dumbbells, one side']],
+  slrdl: [['kickstand', 'more stable'], ['dbrdl', 'both legs']],
+  cablerow: [['dbrow', 'dumbbell + bench'], ['chestrow', 'incline bench'], ['invrow', 'bodyweight']],
+  bikesprint: [['rowsprint', 'rower'], ['jumprope', 'rope']],
+  ttgames: [['bikesprint', 'bike'], ['jumprope', 'rope']],
+  bprow: [['dbrow', 'dumbbell'], ['invrow', 'table / bar']],
+  pike: [['pushup', 'easier'], ['kneelpress', 'dumbbell']],
+  bpcurl: [['curl', 'dumbbell'], ['hammer', 'dumbbell']],
+  bandrot: [['cablerot', 'cable'], ['pallof', 'anti-rotation']],
+  splithold: [['wallsit', 'wall'], ['isosquat', 'rack']]
+};

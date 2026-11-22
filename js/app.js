@@ -1,7 +1,7 @@
 /* Peak — app logic (vanilla JS, no build step). */
 'use strict';
 
-const APP_VERSION = '0.4.1';
+const APP_VERSION = '0.4.2';
 const STORE_KEY = 'peak.v1';
 
 /* ---------- helpers ---------- */
@@ -245,6 +245,20 @@ function saveSet() {
   render();
 }
 
+function replaceItem(w, i, newId) {
+  const it = w.items[i]; const oldEx = D.exercises[it.exId], nx = D.exercises[newId]; if (!it || !nx) return;
+  const p = Object.assign({}, it.presc || {}); delete p.load; delete p.loadTxt; p.ex = newId;
+  if (nx.uni && !oldEx.uni && p.sets) { p.L = p.sets; p.R = p.sets; delete p.sets; }
+  if (!nx.uni && oldEx.uni && p.L != null) { p.sets = p.L; delete p.L; delete p.R; }
+  if (['time', 'wt'].includes(nx.type) && !p.t) p.t = 30;
+  if (['wr', 'bwkg', 'reps'].includes(nx.type) && p.rmin == null) { p.rmin = 8; p.rmax = 10; }
+  if (nx.type === 'wd' && !p.d) p.d = 30;
+  if (!['time', 'wt'].includes(nx.type)) delete p.t;
+  if (nx.type !== 'wd') delete p.d;
+  w.items[i] = { exId: newId, block: it.block, presc: it.presc ? p : null, replaced: it.replaced || it.exId };
+  UI.entry = null; UI.lastSet = null; save(); toast(oldEx.name + ' → ' + nx.name);
+}
+
 function finishWorkout() {
   const w = active(); if (!w) return;
   if (!w.sets.length) {
@@ -318,7 +332,28 @@ document.addEventListener('visibilitychange', () => { if (document.visibilitySta
 /* ---------- UI state ---------- */
 function ask(msg, ok, cb) { UI.confirm = { msg, ok, cb }; UI.sheet = 'confirm'; render(); }
 const UI = { view: 'today', entry: null, lastSet: null, sheet: null, pq: '', pcat: null, expanded: null };
-function go(view) { UI.view = view; UI.sheet = null; render(); window.scrollTo(0, 0); }
+function go(view, fromBack) {
+  if (!fromBack && view !== UI.view) UI.prev = UI.view;
+  UI.view = view; UI.sheet = null; UI.replaceMode = false; render(); window.scrollTo(0, 0);
+}
+/* Phone back button: close the sheet, else previous tab, else Today; from Today the app closes.
+   One history entry ("guard") exists whenever we are not on Today with nothing open. */
+const NAV = { guarded: false, skip: false };
+const atRoot = () => UI.view === 'today' && !UI.sheet;
+function syncGuard() {
+  try {
+    if (!atRoot() && !NAV.guarded) { history.pushState({ peak: 1 }, ''); NAV.guarded = true; }
+    else if (atRoot() && NAV.guarded) { NAV.guarded = false; NAV.skip = true; history.back(); }
+  } catch (e) { /* history unavailable */ }
+}
+window.addEventListener('popstate', () => {
+  NAV.guarded = false;
+  if (NAV.skip) { NAV.skip = false; syncGuard(); return; }
+  if (UI.sheet) { UI.sheet = null; UI.replaceMode = false; render(); }
+  else if (UI.prev && UI.prev !== UI.view) { const p = UI.prev; UI.prev = null; go(p, true); }
+  else if (UI.view !== 'today') { UI.prev = null; go('today', true); }
+  syncGuard();
+});
 function toast(msg) {
   const t = $('#toast'); if (!t) return;
   t.textContent = msg; t.hidden = false; clearTimeout(toast.tm); toast.tm = setTimeout(() => { t.hidden = true; }, 2600);
@@ -441,7 +476,9 @@ function viewSession() {
     const ex = D.exercises[item.exId];
     detail = `<section class="card current">
       <div class="row between top-al"><div><span class="eyebrow"><i class="dot" style="background:${CATS[ex.cat]}"></i> ${esc(item.block || ex.cat)}</span><h2>${esc(ex.name)}</h2><p class="soft">${esc(prescText(item.presc, ex))}</p></div><div class="row">${ex.uni ? '<span class="tag">L first</span>' : ''}${typeof GUIDES !== 'undefined' && GUIDES[ex.id] ? `<button class="icon-btn" aria-label="How to do ${esc(ex.name)}" data-act="guide" data-v="${ex.id}"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg></button>` : ''}</div></div>
-      ${item.presc && item.presc.cue ? `<p class="cue">${esc(item.presc.cue)}</p>` : ''}
+      ${item.replaced && D.exercises[item.replaced] ? `<p class="soft sm">Replaces ${esc(D.exercises[item.replaced].name)}</p>` : ''}
+      ${item.presc && item.presc.cue && !item.replaced ? `<p class="cue">${esc(item.presc.cue)}</p>` : ''}
+      <button class="btn small outline replace-btn" data-act="sheet" data-v="replace">Replace</button>
       <div class="sets">${setRowsHTML(w, item)}</div>
       ${entryHTML(w, item)}
     </section>`;
@@ -474,6 +511,14 @@ function sheetHTML() {
   const plan = activePlan(); const pr = progOf(plan.id);
   if (UI.sheet === 'confirm' && UI.confirm) {
     body = `<h2>${esc(UI.confirm.msg)}</h2><div class="quick"><button class="btn outline" data-act="close">Cancel</button><button class="btn primary" data-act="confirm-ok">${esc(UI.confirm.ok)}</button></div>`;
+  } else if (UI.sheet === 'replace') {
+    const w = active(); const it = w && w.items[w.cur]; const ex = it && D.exercises[it.exId];
+    const orig = it && it.replaced ? it.replaced : it && it.exId;
+    const alts = ((typeof ALTS !== 'undefined' && ALTS[orig]) || []).filter(([id]) => D.exercises[id] && id !== (it && it.exId));
+    if (it && it.replaced && D.exercises[it.replaced]) alts.unshift([it.replaced, 'back to the plan']);
+    body = `<h2>Replace ${esc(ex ? ex.name : '')}</h2><p class="muted sm">Machine taken or missing equipment? Same movement, other equipment. Sets and reps stay; the plan itself is not changed.</p>
+      ${alts.map(([id, why]) => { const e = D.exercises[id]; return `<button class="list-btn" data-act="replace-with" data-v="${id}"><i class="dot" style="background:${CATS[e.cat]}"></i><span><b>${esc(e.name)}</b><small>${esc(why)} · ${esc(TYPES[e.type])}${e.uni ? ' · L/R' : ''}</small></span></button>`; }).join('') || '<p class="muted">No suggestion for this one.</p>'}
+      <button class="btn outline" data-act="replace-other">Other exercise…</button>`;
   } else if (UI.sheet === 'pick') {
     body = `<h2>Sessions of this week</h2>${plan.sessions.map((s) => `<button class="list-btn" data-act="start" data-s="${s.id}"><span><b>${esc(s.name)} — ${esc(s.title)}</b><small>${s.required ? 'Required' : 'Optional'}${pr.done[s.id] ? ' · done ✓' : ''}</small></span></button>`).join('')}`;
   } else if (UI.sheet === 'match') {
@@ -495,7 +540,7 @@ function sheetHTML() {
   } else if (UI.sheet === 'picker') {
     const q = UI.pq.trim().toLowerCase();
     const list = Object.values(D.exercises).filter((e) => (!UI.pcat || e.cat === UI.pcat) && (!q || e.name.toLowerCase().includes(q))).sort((a, b) => a.name.localeCompare(b.name));
-    body = `<h2>Add exercise</h2><input class="search" type="search" placeholder="Search exercises" aria-label="Search exercises" data-in="pq" value="${esc(UI.pq)}">
+    body = `<h2>${UI.replaceMode ? 'Replace with…' : 'Add exercise'}</h2><input class="search" type="search" placeholder="Search exercises" aria-label="Search exercises" data-in="pq" value="${esc(UI.pq)}">
       <div class="chips scroll"><button class="chip-btn${!UI.pcat ? ' on' : ''}" data-act="pcat" data-v="">All</button>${Object.keys(CATS).map((c) => `<button class="chip-btn${UI.pcat === c ? ' on' : ''}" data-act="pcat" data-v="${c}"><i class="dot" style="background:${CATS[c]}"></i>${c}</button>`).join('')}</div>
       <div class="pick-list">${list.map((e) => `<button class="list-btn" data-act="addex" data-v="${e.id}"><i class="dot" style="background:${CATS[e.cat]}"></i><span><b>${esc(e.name)}</b><small>${esc(TYPES[e.type])}${e.uni ? ' · L/R' : ''}</small></span></button>`).join('') || '<p class="muted">No match.</p>'}</div>
       <button class="btn outline" data-act="sheet" data-v="newex">${svg('plus', 18, 2)} New exercise</button>`;
@@ -529,6 +574,7 @@ function render() {
   const f = $('#import-file'); if (f) f.addEventListener('change', importFile);
   if (UI.view === 'session') keepAwake();
   tickRest();
+  syncGuard();
 }
 
 /* ---------- events ---------- */
@@ -539,7 +585,7 @@ document.addEventListener('click', (ev) => {
   switch (a) {
     case 'go': go(b.dataset.v); break;
     case 'sheet': UI.sheet = b.dataset.v; if (b.dataset.v === 'picker') { UI.pq = ''; } render(); break;
-    case 'close': UI.sheet = null; render(); break;
+    case 'close': UI.sheet = null; UI.replaceMode = false; render(); break;
     case 'start': {
       const s = activePlan().sessions.find((x) => x.id === b.dataset.s);
       if (s && s.matchable) { UI.pending = s.id; UI.sheet = 'match'; render(); }
@@ -575,7 +621,10 @@ document.addEventListener('click', (ev) => {
     }
     case 'rest-default': if (REST.exId && D.exercises[REST.exId]) { D.exercises[REST.exId].rest = REST.base; D.exercises[REST.exId].upd = Date.now(); save(); b.hidden = true; toast('New default rest for ' + D.exercises[REST.exId].name + ': ' + fmtT(REST.base)); } break;
     case 'pcat': UI.pcat = b.dataset.v || null; render(); break;
-    case 'addex': if (w) { w.items.push({ exId: b.dataset.v, block: 'Added', presc: null }); w.cur = w.items.length - 1; UI.entry = null; UI.lastSet = null; save(); } UI.sheet = null; render(); break;
+    case 'replace-with': if (w) { replaceItem(w, w.cur, b.dataset.v); } UI.sheet = null; render(); break;
+    case 'replace-other': UI.replaceMode = true; UI.pq = ''; UI.sheet = 'picker'; render(); break;
+    case 'addex': if (w && UI.replaceMode) { UI.replaceMode = false; replaceItem(w, w.cur, b.dataset.v); UI.sheet = null; render(); break; }
+      if (w) { w.items.push({ exId: b.dataset.v, block: 'Added', presc: null }); w.cur = w.items.length - 1; UI.entry = null; UI.lastSet = null; save(); } UI.sheet = null; render(); break;
     case 'newex-save': {
       const name = ($('#nx-name').value || '').trim(); if (!name) { toast('Give the exercise a name'); break; }
       const e = { id: 'x' + uid(), name, cat: $('#nx-cat').value, type: $('#nx-type').value, equip: $('#nx-eq').value, uni: $('#nx-uni').checked, rest: Math.max(0, Number($('#nx-rest').value) || 0) };
