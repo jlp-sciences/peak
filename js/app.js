@@ -1,7 +1,7 @@
 /* Peak — app logic (vanilla JS, no build step). */
 'use strict';
 
-const APP_VERSION = '0.3.0-dev';
+const APP_VERSION = '0.4.0';
 const STORE_KEY = 'peak.v1';
 
 /* ---------- helpers ---------- */
@@ -43,7 +43,7 @@ function seed() {
 }
 function load() {
   try { D = JSON.parse(localStorage.getItem(STORE_KEY)); } catch (e) { D = null; }
-  if (!D || D.v !== 1) { D = seed(); save(); return; }
+  if (!D || D.v !== 1) { D = seed(); D._seeded = true; save(); return; }
   // add seed exercises / plans that appeared in a newer version, without touching user edits
   SEED_EXERCISES.forEach((e) => { if (!D.exercises[e.id]) D.exercises[e.id] = JSON.parse(JSON.stringify(e)); });
   SEED_PLANS.forEach((p) => { if (!D.plans[p.id]) { D.plans[p.id] = JSON.parse(JSON.stringify(p)); D.progress[p.id] = { cycle: 0, week: 1, done: {} }; } });
@@ -51,10 +51,7 @@ function load() {
   if (D.settings.goalWeight == null) D.settings.goalWeight = 76;
   Object.values(D.progress).forEach((pr) => { if (!pr.since) pr.since = iso(new Date(D.created || Date.now())); if (!pr.csince) pr.csince = pr.since; });
 }
-function toggleRun(k) {
-  if (!D.runsOff) D.runsOff = {};
-  if (D.runs[k]) { delete D.runs[k]; D.runsOff[k] = Date.now(); } else { D.runs[k] = Date.now(); delete D.runsOff[k]; }
-}
+function toggleRun(k) { if (D.runs[k]) delete D.runs[k]; else D.runs[k] = true; }
 function save() {
   const a = D.active && D.workouts.find((w) => w.id === D.active); if (a) a.upd = Date.now();
   if (typeof onLocalChange === 'function') onLocalChange();
@@ -251,7 +248,7 @@ function saveSet() {
 function finishWorkout() {
   const w = active(); if (!w) return;
   if (!w.sets.length) {
-    ask('No set logged. Discard this session?', 'Discard', () => { (D.deleted = D.deleted || {})[w.id] = Date.now(); D.workouts = D.workouts.filter((x) => x.id !== w.id); D.active = null; save(); stopRest(); releaseWake(); go('today'); });
+    ask('No set logged. Discard this session?', 'Discard', () => { D.workouts = D.workouts.filter((x) => x.id !== w.id); D.active = null; save(); stopRest(); releaseWake(); go('today'); });
     return;
   }
   ask('Finish and save this session?', 'Finish', () => closeWorkout(w));
