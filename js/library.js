@@ -79,11 +79,11 @@ const LIBRARY = [
   ['easybike', 'Easy bike', 'Mobility', 'time', false, 'none', 0, 'Set the bike to a light resistance, seat at hip height.', 'Pedal at an easy pace, slowly building the rhythm.', 'You should be able to talk; this is a warm-up, not a workout.', 'Gently raises the heart rate and loosens the hips and knees.'],
   ['legswing', 'Leg swings', 'Mobility', 'reps', true, 'none', 0, 'Stand side-on to a wall, one hand on it for balance.', 'Swing the outside leg forward and back, then side to side across the body.', 'Relaxed swing, growing range; the trunk stays tall.', 'Opens the hips dynamically before running and jumping.'],
   ['wgs', 'World’s greatest stretch', 'Mobility', 'reps', true, 'none', 0, 'Step into a long lunge, both hands on the floor inside the front foot.', 'Drop the elbow towards the front ankle, then rotate and reach the arm to the ceiling.', 'Back knee off the floor; follow the hand with your eyes.', 'Opens hips, hamstrings and upper back in one movement.'],
-  ['hip9090', 'Hip 90/90 switches', 'Mobility', 'reps', false, 'none', 0, 'Sit with both knees bent at 90°, one leg in front, one to the side.', 'Rotate both knees to the other side without using the hands, then back.', 'Sit tall; move slowly through the hips.', 'Improves hip rotation, key for low stances and lunges.'],
-  ['thoracic', 'Thoracic rotation', 'Mobility', 'reps', true, 'none', 0, 'Kneel on all fours, one hand behind the head.', 'Rotate the elbow down towards the other hand, then open it up to the ceiling.', 'Hips stay still; the movement comes from the upper back.', 'Frees the upper back for rotation and overhead work.'],
+  ['hip9090', 'Hip 90/90', 'Mobility', 'time', true, 'none', 0, 'Sit with both knees bent at 90°, one leg in front, one to the side.', 'Sit tall over the front shin and breathe; switch sides by rotating both knees without the hands.', 'Sit tall; move slowly through the hips.', 'Improves hip rotation, key for low stances and lunges.'],
+  ['thoracic', 'Thoracic rotation', 'Mobility', 'time', true, 'none', 0, 'Kneel on all fours, one hand behind the head.', 'Rotate the elbow down towards the other hand, then open it up to the ceiling.', 'Hips stay still; the movement comes from the upper back.', 'Frees the upper back for rotation and overhead work.'],
   ['pullapart', 'Band pull-apart', 'Mobility', 'reps', false, 'none', 0, 'Hold a light band at shoulder height, arms straight in front.', 'Pull the band apart until it touches the chest, then return slowly.', 'Shoulders down; squeeze the shoulder blades.', 'Activates the upper back and protects the shoulders.'],
-  ['anklewall', 'Ankle rocks (knee to wall)', 'Mobility', 'reps', true, 'none', 0, 'Face a wall in a half-kneeling stance, front foot a hand-width away.', 'Push the front knee towards the wall over the toes, then back.', 'Heel stays down the whole time.', 'Improves ankle mobility for squats, lunges and quick footwork.'],
-  ['bandwalk', 'Mini-band side walk', 'Mobility', 'reps', false, 'none', 0, 'Mini band just above the knees, quarter squat, feet hip-width.', 'Take small side steps, keeping tension on the band, then come back.', 'Knees push out; no bouncing.', 'Wakes up the glutes before leg work.'],
+  ['anklewall', 'Ankle wall drill', 'Mobility', 'time', true, 'none', 0, 'Face a wall in a half-kneeling stance, front foot a hand-width away.', 'Push the front knee towards the wall over the toes, then back.', 'Heel stays down the whole time.', 'Improves ankle mobility for squats, lunges and quick footwork.'],
+  ['bandwalk', 'Banded lateral walk', 'Mobility', 'reps', false, 'none', 0, 'Mini band just above the knees, quarter squat, feet hip-width.', 'Take small side steps, keeping tension on the band, then come back.', 'Knees push out; no bouncing.', 'Wakes up the glutes before leg work.'],
   ['scappush', 'Scap push-up', 'Mobility', 'reps', false, 'none', 0, 'Push-up position with straight arms.', 'Let the chest sink between the shoulder blades, then push the floor away.', 'Arms stay straight; only the shoulder blades move.', 'Activates the muscles that keep the shoulders stable.'],
   ['armcircle', 'Arm circles', 'Mobility', 'reps', false, 'none', 0, 'Stand tall, arms out to the sides.', 'Make circles forward, then backward, from small to large.', 'Relaxed shoulders; smooth circles.', 'Warms up the shoulder joint.'],
   ['askip', 'A-skips', 'Mobility', 'reps', false, 'none', 0, 'Stand tall with a little space in front of you.', 'Skip forward, driving one knee up while the other foot taps the ground quickly.', 'Stay on the balls of the feet; arms match the legs.', 'Primes quick, springy footwork.'],
@@ -91,9 +91,14 @@ const LIBRARY = [
   ['couch', 'Couch stretch', 'Mobility', 'time', true, 'none', 0, 'Back knee on a cushion against a wall or bench, shin up the wall, front foot planted.', 'Squeeze the glute of the back leg and lift the chest until a stretch at the front of the hip.', 'No arching of the lower back.', 'Opens the hip flexors and quads after leg work.'],
   ['pigeon', 'Pigeon stretch', 'Mobility', 'time', true, 'none', 0, 'Front shin across the body on the floor, back leg straight behind.', 'Lower the chest over the front leg and breathe.', 'Hips stay square to the floor.', 'Releases the glutes and outer hip.'],
   ['hamstretch', 'Hamstring stretch', 'Mobility', 'time', true, 'none', 0, 'Heel on a low box or bench, leg straight, the other knee soft.', 'Hinge forward from the hips with a flat back until a stretch.', 'Long back; point the toes up.', 'Keeps the hamstrings supple after hinges and sprints.'],
-  ['doorpec', 'Doorway chest stretch', 'Mobility', 'time', false, 'none', 0, 'Forearms on a door frame, elbows at shoulder height.', 'Step through gently until a stretch across the chest.', 'Shoulders stay down; do not force.', 'Opens the chest and front shoulders.'],
+  ['doorpec', 'Doorframe pec stretch', 'Mobility', 'time', true, 'none', 0, 'Forearms on a door frame, elbows at shoulder height.', 'Step through gently until a stretch across the chest.', 'Shoulders stay down; do not force.', 'Opens the chest and front shoulders.'],
   ['deadhang', 'Dead hang', 'Mobility', 'time', false, 'none', 0, 'Hang from a bar with an overhand grip, feet off the floor.', 'Relax and let the body hang for the set time.', 'Breathe; let the shoulders open.', 'Decompresses the spine and opens the shoulders; builds grip.'],
   ['foamroll', 'Foam roll', 'Mobility', 'time', false, 'none', 0, 'Sit or lie on a foam roller under the muscle to treat.', 'Roll slowly along the muscle, pausing on tight spots.', 'Slow and controlled; avoid joints and the lower back.', 'Helps the muscles relax after training.'],
+  ['slbridge', 'Single-leg glute bridge', 'Mobility', 'reps', true, 'none', 0, 'Lie on the back, one knee bent with the foot flat, the other leg straight in the air.', 'Push through the heel to lift the hips, squeeze the glute, then lower.', 'Hips stay level; no arching.', 'Wakes up the glutes one side at a time before leg work.'],
+  ['sleeper', 'Sleeper stretch', 'Mobility', 'time', true, 'none', 0, 'Lie on the side, bottom arm in front at shoulder height, elbow bent at 90°.', 'Gently press the forearm down towards the floor with the other hand.', 'Mild stretch only; stop at any pinch.', 'Restores internal rotation of the hitting shoulder.'],
+  ['easyrow', 'Easy rowing', 'Mobility', 'time', false, 'none', 0, 'Feet strapped in, light damper, tall posture.', 'Row at an easy pace: legs, then body, then arms.', 'Smooth and relaxed; you should be able to talk.', 'Warms up the whole body, especially the back.'],
+  ['easyjog', 'Easy jog', 'Mobility', 'time', false, 'none', 0, 'Comfortable shoes, relaxed shoulders.', 'Jog at a very easy pace.', 'Fully conversational pace.', 'Gently raises the heart rate.'],
+  ['lowshuffle', 'Low lateral shuffle', 'Mobility', 'reps', true, 'none', 0, 'Low athletic stance, feet wider than the hips.', 'Shuffle sideways 10 m staying low, then come back the other way.', 'Hips stay low; feet never cross.', 'Primes the TT footwork pattern.'],
   ['treadmill', 'Treadmill run', 'Conditioning', 'time', false, 'none', 60, 'Set the treadmill speed and incline.', 'Run at the chosen pace for the set time.', 'Relaxed shoulders; short, light steps.', 'Builds aerobic fitness.']
 ];
 LIBRARY.forEach(([id, name, cat, type, uni, equip, rest, setup, move, key, benefit]) => {
@@ -104,28 +109,36 @@ LIBRARY.forEach(([id, name, cat, type, uni, equip, rest, setup, move, key, benef
 /* Warm-up (counts in the session %) and optional cool-down for the built-in plans */
 const COOL = 'Cool-down (optional)';
 const WARMUPS = {
-  gym1: { w: [{ ex: 'easybike', s: 1, t: 180 }, { ex: 'legswing', L: 1, R: 1, r: [10, 10] }, { ex: 'wgs', L: 1, R: 1, r: [5, 5] }, { ex: 'anklewall', L: 1, R: 1, r: [10, 10] }, { ex: 'bandwalk', s: 1, r: [12, 12] }],
-          c: [{ ex: 'couch', L: 1, R: 1, t: 45 }, { ex: 'pigeon', L: 1, R: 1, t: 45 }, { ex: 'foamroll', s: 1, t: 120 }] },
-  gym2: { w: [{ ex: 'jumprope', s: 1, t: 120 }, { ex: 'armcircle', s: 1, r: [10, 10] }, { ex: 'pullapart', s: 2, r: [15, 15] }, { ex: 'thoracic', L: 1, R: 1, r: [8, 8] }, { ex: 'scappush', s: 1, r: [10, 10] }],
-          c: [{ ex: 'deadhang', s: 2, t: 30 }, { ex: 'doorpec', s: 1, t: 45 }, { ex: 'catcow', s: 1, r: [8, 8] }] },
-  gym3: { w: [{ ex: 'jumprope', s: 1, t: 120 }, { ex: 'legswing', L: 1, R: 1, r: [10, 10] }, { ex: 'hip9090', s: 1, r: [8, 8] }, { ex: 'bandwalk', s: 1, r: [12, 12] }, { ex: 'askip', s: 2, r: [10, 10] }],
-          c: [{ ex: 'hamstretch', L: 1, R: 1, t: 45 }, { ex: 'couch', L: 1, R: 1, t: 45 }, { ex: 'foamroll', s: 1, t: 120 }] },
-  cond: { w: [{ ex: 'easybike', s: 1, t: 300 }], c: [{ ex: 'hamstretch', L: 1, R: 1, t: 45 }, { ex: 'couch', L: 1, R: 1, t: 45 }] },
-  outA: { w: [{ ex: 'legswing', L: 1, R: 1, r: [10, 10] }, { ex: 'wgs', L: 1, R: 1, r: [5, 5] }, { ex: 'anklewall', L: 1, R: 1, r: [10, 10] }], c: [{ ex: 'couch', L: 1, R: 1, t: 45 }, { ex: 'pigeon', L: 1, R: 1, t: 45 }] },
-  outB: { w: [{ ex: 'armcircle', s: 1, r: [10, 10] }, { ex: 'thoracic', L: 1, R: 1, r: [8, 8] }, { ex: 'scappush', s: 1, r: [10, 10] }], c: [{ ex: 'doorpec', s: 1, t: 45 }, { ex: 'catcow', s: 1, r: [8, 8] }] },
-  outC: { w: [{ ex: 'legswing', L: 1, R: 1, r: [10, 10] }, { ex: 'hip9090', s: 1, r: [8, 8] }, { ex: 'askip', s: 2, r: [10, 10] }], c: [{ ex: 'hamstretch', L: 1, R: 1, t: 45 }] }
+  // from the TT season plan document
+  gym1: { w: [{ ex: 'easybike', s: 1, t: 180 }, { ex: 'slbridge', L: 2, R: 1, r: [12, 12] }, { ex: 'bandwalk', s: 2, r: [10, 10], cue: '10 steps each way' }],
+          m: [{ ex: 'hip9090', L: 1, R: 1, t: 60 }, { ex: 'couch', L: 1, R: 1, t: 90 }] },
+  gym2: { w: [{ ex: 'easyrow', s: 1, t: 180 }, { ex: 'pullapart', s: 2, r: [15, 15] }, { ex: 'thoracic', L: 1, R: 1, t: 30, cue: '8 slow reps per side' }],
+          m: [{ ex: 'thoracic', L: 1, R: 1, t: 60 }, { ex: 'doorpec', L: 1, R: 1, t: 60 }, { ex: 'sleeper', L: 1, R: 1, t: 60, cue: 'Right shoulder especially' }] },
+  gym3: { w: [{ ex: 'easybike', s: 1, t: 180 }, { ex: 'legswing', L: 1, R: 1, r: [10, 10], cue: '10 front + 10 side' }, { ex: 'lowshuffle', L: 2, R: 2, r: [1, 1], cue: '10 m each way, stay low' }],
+          m: [{ ex: 'anklewall', L: 1, R: 1, t: 60 }, { ex: 'hip9090', L: 1, R: 1, t: 60 }, { ex: 'thoracic', L: 1, R: 1, t: 60 }] },
+  cond: { w: [{ ex: 'easyjog', s: 1, t: 300, cue: 'Or easy bike' }, { ex: 'legswing', L: 1, R: 1, r: [10, 10] }, { ex: 'lowshuffle', L: 2, R: 2, r: [1, 1], cue: '10 m each way' }],
+          c: [{ ex: 'easybike', s: 1, t: 180, cue: 'Or easy walk' }, { ex: 'hip9090', L: 1, R: 1, t: 60 }] },
+  // the plan has none for the away sessions: these are ours
+  outA: { w: [{ ex: 'legswing', L: 1, R: 1, r: [10, 10] }, { ex: 'wgs', L: 1, R: 1, r: [5, 5] }, { ex: 'anklewall', L: 1, R: 1, t: 30 }], c: [{ ex: 'couch', L: 1, R: 1, t: 45 }, { ex: 'pigeon', L: 1, R: 1, t: 45 }] },
+  outB: { w: [{ ex: 'armcircle', s: 1, r: [10, 10] }, { ex: 'thoracic', L: 1, R: 1, t: 30 }, { ex: 'scappush', s: 1, r: [10, 10] }], c: [{ ex: 'doorpec', L: 1, R: 1, t: 45 }, { ex: 'catcow', s: 1, r: [8, 8] }] },
+  outC: { w: [{ ex: 'legswing', L: 1, R: 1, r: [10, 10] }, { ex: 'hip9090', L: 1, R: 1, t: 30 }, { ex: 'askip', s: 2, r: [10, 10] }], c: [{ ex: 'hamstretch', L: 1, R: 1, t: 45 }] }
 };
+/* the plan's daily mobility (10 min) */
+const DAILY_MOB = [{ ex: 'hip9090', L: 1, R: 1, t: 120 }, { ex: 'anklewall', L: 1, R: 1, t: 60 }, { ex: 'thoracic', L: 1, R: 1, t: 60 }, { ex: 'couch', L: 1, R: 1, t: 60 }];
+const MOB_FIX = ['hip9090', 'thoracic', 'anklewall', 'doorpec', 'bandwalk']; // exercises whose type changed in 1.5
 /* adds the blocks to every cycle of the built-in sessions that do not have them yet; returns true if something changed */
-function addWarmups(plans) {
-  let changed = false;
-  plans.forEach((p) => { if (!['tt-season', 'away'].includes(p.id)) return; p.sessions.forEach((s) => {
+function addWarmups(plans, redo) {
+  let changed = false; const OURS = ['Warm-up', 'Mobility', COOL];
+  plans.forEach((p) => { if (!['tt-season', 'away'].includes(p.id)) return; let pc = false; p.sessions.forEach((s) => {
     const W = WARMUPS[s.id]; if (!W || !s.tpl) return;
-    Object.values(s.tpl).forEach((blocks) => {
-      if (!blocks.some(([b]) => b === 'Warm-up')) { blocks.unshift(['Warm-up', JSON.parse(JSON.stringify(W.w))]); changed = true; }
-      if (!blocks.some(([b]) => b === COOL)) { blocks.push([COOL, JSON.parse(JSON.stringify(W.c))]); changed = true; }
+    Object.keys(s.tpl).forEach((k) => {
+      let blocks = s.tpl[k];
+      if (redo && p.id === 'tt-season') { const n = blocks.length; blocks = s.tpl[k] = blocks.filter(([b]) => !OURS.includes(b)); if (blocks.length !== n) pc = true; }
+      if (!blocks.some(([b]) => b === 'Warm-up')) { blocks.unshift(['Warm-up', JSON.parse(JSON.stringify(W.w))]); pc = true; }
+      if (W.m && !blocks.some(([b]) => b === 'Mobility')) { blocks.push(['Mobility', JSON.parse(JSON.stringify(W.m))]); pc = true; }
+      if (W.c && !blocks.some(([b]) => b === COOL)) { blocks.push([COOL, JSON.parse(JSON.stringify(W.c))]); pc = true; }
     });
-    if (changed) p.upd = Date.now();
-  }); });
+  }); if (pc) { p.upd = Date.now(); changed = true; } });
   return changed;
 }
 addWarmups(SEED_PLANS);

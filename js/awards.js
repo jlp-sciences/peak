@@ -25,7 +25,7 @@ const valueOf = (stat) => (stat && stat.length ? stat[stat.length - 1][1] : 0);
 const dateFor = (stat, t) => { const p = (stat || []).find(([, v]) => v >= t - 1e-9); return p ? p[0] : null; };
 
 /* ---------- goal eras ---------- */
-function finished() { return D.workouts.filter((w) => w.end).slice().sort((a, b) => (a.date === b.date ? (a.start || 0) - (b.start || 0) : a.date.localeCompare(b.date))); }
+function finished() { return D.workouts.filter((w) => w.end && !w.mob).slice().sort((a, b) => (a.date === b.date ? (a.start || 0) - (b.start || 0) : a.date.localeCompare(b.date))); }
 function erasList() { return Object.values(D.eras || {}).sort((a, b) => a.from.localeCompare(b.from)); }
 function ensureEra() {
   D.eras = D.eras || {};
@@ -126,6 +126,9 @@ function careerStats(ws) {
   s.twin = counter(Object.values(prs.reduce((o, p) => { if (p.side) { const k = p.wid + p.exId; (o[k] = o[k] || { date: p.date, s: new Set() }).s.add(p.side); } return o; }, {})).filter((x) => x.s.size === 2).map((x) => x.date));
   s.sneaky = counter([...new Set(prs.filter((p) => wOf[p.wid] && wOf[p.wid].w.light).map((p) => p.wid))].map((id) => wOf[id].w.date));
   Object.keys(CATS).forEach((c) => { s['cat_' + c] = counter(sets.filter((x) => exOf(x).cat === c).map((x) => x.date)); });
+  // daily mobility sessions are not sessions, but their sets count for Stretch Goals
+  const mobSets = D.workouts.filter((w) => w.mob && w.end).flatMap((w) => w.sets.map((x) => w.date));
+  if (mobSets.length) s.cat_Mobility = counter(sets.filter((x) => exOf(x).cat === 'Mobility').map((x) => x.date).concat(mobSets).sort());
   s.records = counter(prs.map((p) => p.date));
   const perW = {}; s.prByW = perW; prs.forEach((p) => { perW[p.wid] = (perW[p.wid] || 0) + 1; s.triple = s.triple || []; s.triple.push([p.date, perW[p.wid]]); }); s.triple = best(s.triple || []);
   const cats = CORE_CATS(); const seenC = new Set(); s.allRound = best(prs.filter((p) => cats.includes(p.cat)).map((p) => { seenC.add(p.cat); return [p.date, seenC.size]; }));

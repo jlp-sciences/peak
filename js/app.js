@@ -1,7 +1,7 @@
 /* Peak — app logic (vanilla JS, no build step). */
 'use strict';
 
-const APP_VERSION = '1.4.0';
+const APP_VERSION = '1.5.0';
 const STORE_KEY = 'peak.v1';
 
 /* ---------- helpers ---------- */
@@ -53,7 +53,10 @@ function load() {
   // add seed exercises / plans that appeared in a newer version, without touching user edits
   SEED_EXERCISES.forEach((e) => { if (!D.exercises[e.id]) D.exercises[e.id] = JSON.parse(JSON.stringify(e)); });
   SEED_PLANS.forEach((p) => { if (!D.plans[p.id] && !(D.settings.removedPlans || []).includes(p.id)) { D.plans[p.id] = JSON.parse(JSON.stringify(p)); D.progress[p.id] = { cycle: 0, week: 1, done: {} }; } });
-  if (!D.settings.warmupV1) { if (typeof addWarmups === 'function') addWarmups(Object.values(D.plans)); D.settings.warmupV1 = true; D.settings.upd = Date.now(); }
+  if (!D.settings.warmupV2 && typeof addWarmups === 'function') {
+    addWarmups(Object.values(D.plans), !!D.settings.warmupV1); D.settings.warmupV2 = true;
+    MOB_FIX.forEach((id) => { const e = D.exercises[id], sd = SEED_EXERCISES.find((x) => x.id === id); if (e && sd && !e.upd) Object.assign(e, { name: sd.name, type: sd.type, uni: sd.uni }); });
+  }
   if (!D.body) D.body = { measures: [], tests: [] };
   if (!D.planned) D.planned = {};
   if (D.settings.goalWeight == null) D.settings.goalWeight = 76;
@@ -466,6 +469,7 @@ function viewToday() {
       <div class="quick">
         <button class="btn outline" data-act="free">${svg('plus', 18, 2)} Free session</button>
         <button class="btn ${ran ? 'filled' : 'outline'}" data-act="run" aria-pressed="${ran}">${svg('run', 18, 2)} ${ran ? 'Ran today ✓' : 'I ran today'}</button>
+        ${typeof DAILY_MOB !== 'undefined' ? (() => { const mob = D.workouts.some((x) => x.mob && x.end && x.date === iso()); return `<button class="btn ${mob ? 'filled' : 'outline'} span2" data-act="daily-mob" aria-pressed="${mob}">${svg('body', 18, 2)} ${mob ? 'Daily mobility done ✓' : 'Daily mobility · 10 min'}</button>`; })() : ''}
       </div>
       ${isLightWeek(plan) ? `<section class="card hero"><span class="eyebrow">WEEK ${plan.weeks} · TESTS</span><p class="soft">Light week: log your tests (jumps, 5-10-5, row max reps, arms, weight).</p><button class="btn primary" data-act="sheet" data-v="tests">Log tests</button></section>` : ''}
       ${recent.length ? `<section class="card"><div class="row between"><span class="eyebrow">RECENT</span><button class="btn small ghost-link" data-act="view-history">View history ›</button></div>${recent.map((x) => `<button class="recent" data-act="hist-open" data-v="${x.id}" data-lpw="${x.id}" aria-label="${esc(x.name)}, ${longDate(x.date)}. Long press to edit or delete."><span>${esc(x.name.split(' — ')[0])}</span><span class="muted sm">${longDate(x.date)} · ${x.sets.length} sets</span></button>`).join('')}<p class="muted sm hint">Long press a session to edit or delete it.</p></section>` : ''}
@@ -719,6 +723,12 @@ document.addEventListener('click', (ev) => {
     }
     case 'start-confirm': { const m = $('#match-cb'); startWorkout(UI.pendingPlan || activePlan().id, UI.pending, { match: !!(m && m.checked), date: UI.pendingDate || null }); UI.pendingPlan = null; UI.pendingDate = null; break; }
     case 'free': startWorkout(null, null, { date: b.dataset.date || null }); break;
+    case 'daily-mob': {
+      if (active()) { go('session'); break; }
+      startWorkout(null, null); const mw = active(); Object.assign(mw, { mob: true, free: false, name: 'Daily mobility' });
+      mw.items = DAILY_MOB.map((it) => ({ exId: it.ex, block: 'Daily mobility', presc: prescribe(it, 1, false, false) })).filter((x) => x.presc);
+      save(); render(); break;
+    }
     case 'run': { toggleRun(iso()); save(); render(); break; }
     case 'setplan': D.settings.activePlan = b.dataset.v; D.settings.upd = Date.now(); save(); UI.sheet = null; render(); break;
     case 'exinfo': UI.exId = b.dataset.v; UI.exTab = hasGuide(UI.exId) ? 'guide' : 'history'; UI.sheet = 'exinfo'; render(); break;
