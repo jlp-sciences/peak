@@ -142,12 +142,13 @@ function initGoogle() {
   sc.onload = () => {
     try {
       SYNC.client = google.accounts.oauth2.initTokenClient({
-        client_id: GOOGLE_CLIENT_ID, scope: DRIVE_SCOPE,
+        client_id: GOOGLE_CLIENT_ID, scope: DRIVE_SCOPE + ' openid email profile',
         callback: (r) => {
           if (r && r.access_token) {
             SYNC.token = r.access_token; SYNC.exp = Date.now() + (Number(r.expires_in) || 3600) * 1000;
             try { localStorage.setItem(TOKEN_KEY, JSON.stringify({ token: SYNC.token, exp: SYNC.exp })); } catch (e) { /* ignore */ }
             D.sync = Object.assign(D.sync || {}, { connected: true });
+            fetchProfile();
             try { localStorage.setItem(STORE_KEY, JSON.stringify(D)); } catch (e) { /* ignore */ }
             syncNow();
           } else setState('reconnect');
@@ -270,7 +271,8 @@ async function updateThenSync() {
       }
     }
   } catch (e) { /* offline: carry on with the version we have */ }
-  if (hasToken()) syncNow(); else setState(D.sync && D.sync.last ? 'reconnect' : 'idle');
+  if (hasToken()) { syncNow(); if (!(D.sync && D.sync.profile)) fetchProfile(); } else setState(D.sync && D.sync.last ? 'reconnect' : 'idle');
+  welcomeOnce();
 }
 
 /* ---------- UI ---------- */
@@ -380,3 +382,64 @@ if (typeof window !== 'undefined' && !window.__PEAK_NO_BOOT__) {
   const start = () => setTimeout(updateThenSync, 800);
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start); else start();
 }
+
+/* ---------- account: the Google account is the Peak account ---------- */
+const WELCOME_KEY = 'peak.welcomed';
+async function fetchProfile() {
+  try {
+    const r = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', { headers: { Authorization: 'Bearer ' + SYNC.token } });
+    if (!r.ok) return; const p = await r.json();
+    D.sync = Object.assign(D.sync || {}, { profile: { name: p.name || '', email: p.email || '', picture: p.picture || '' } });
+    try { localStorage.setItem(STORE_KEY, JSON.stringify(D)); } catch (e) { /* ignore */ }
+    if (typeof safeRender === 'function') safeRender(); else render();
+  } catch (e) { /* offline */ }
+}
+function welcomeOnce() {
+  let seen = null; try { seen = localStorage.getItem(WELCOME_KEY); } catch (e) { /* ignore */ }
+  if (seen || !syncAvailable() || (D.sync && D.sync.connected) || D.workouts.some((w) => w.end)) return;
+  try { localStorage.setItem(WELCOME_KEY, '1'); } catch (e) { /* ignore */ }
+  if (!UI.sheet) { UI.sheet = 'welcome'; render(); }
+}
+const profileOf = () => (D.sync && D.sync.profile) || null;
+function avatarHTML(size) {
+  const p = profileOf(); const initials = p && p.name ? p.name.split(/\s+/).map((x) => x[0]).slice(0, 2).join('').toUpperCase() : '';
+  return `<span class="avatar" style="width:${size}px;height:${size}px">${p && p.picture ? `<img src="${esc(p.picture)}" alt="" referrerpolicy="no-referrer">` : initials ? esc(initials) : '<svg aria-hidden="true" width="60%" height="60%" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>'}</span>`;
+}
+function accountButton() { return `<button class="icon-btn acct-btn" aria-label="Account" data-act="go" data-v="account">${avatarHTML(30)}</button>`; }
+function accountView() {
+  const p = profileOf(); const signed = !!(D.sync && D.sync.connected);
+  const ws = D.workouts.filter((w) => w.end); const first = ws.map((w) => w.date).sort()[0];
+  const A = typeof awards === 'function' ? awards() : null; const tro = A ? A.list.filter((x) => x.level > 0).length : 0;
+  const cn = typeof climbNow === 'function' ? climbNow() : null;
+  const [label] = syncLabel();
+  return `<header class="top"><button class="icon-btn" aria-label="Back" data-act="go" data-v="today">${svg('back')}</button><div class="grow"><h1>Account</h1></div></header>
+  <div class="acct-grid">
+    <section class="card acct-card">${avatarHTML(72)}
+      <div class="acct-id"><b>${p && p.name ? esc(p.name) : signed ? 'Google account' : 'Not signed in'}</b><span class="muted sm">${p && p.email ? esc(p.email) : signed ? 'Connected to Google Drive' : 'Your data is only on this device'}</span></div>
+      ${syncAvailable() ? (signed
+        ? `<div class="acct-sync"><span class="sync-dot${hasToken() ? ' on' : ''}"></span><span class="sm">${esc(label)}</span></div><div class="row wrap"><button class="btn outline" data-act="sync">${hasToken() ? 'Sync now' : 'Reconnect'}</button><button class="btn outline danger-t" data-act="acct-signout">Sign out</button></div>`
+        : `<button class="btn primary big gbtn" data-act="sync"><span class="g">G</span> Sign in with Google</button><p class="muted sm">Your sessions are saved in a hidden file of your own Google Drive and come back on any device where you sign in.</p>`)
+        : '<p class="muted sm">Sign-in works on the published app (jlp-sciences.github.io/peak). Here, data stays on this device.</p>'}
+    </section>
+    <section class="card"><span class="eyebrow">YOUR DATA</span>
+      <div class="tiles"><div class="tile"><span class="muted sm">Sessions</span><span class="big-num">${ws.length}</span></div><div class="tile"><span class="muted sm">Trophies</span><span class="big-num">${tro}</span></div><div class="tile"><span class="muted sm">Climbed</span><span class="big-num">${cn ? Math.round(cn.total).toLocaleString('en') : 0} m</span></div><div class="tile"><span class="muted sm">Since</span><span class="big-num sm-num">${first ? shortDate(first) : '—'}</span></div></div>
+      <button class="list-btn" data-act="export"><span><b>Export my data</b><small>Download a JSON backup</small></span></button></section>
+    <section class="card"><span class="eyebrow">SHARING</span><p class="soft sm">Each person uses Peak with their own Google account, on their own phone. Sharing progress between two accounts will come later.</p></section>
+  </div>`;
+}
+EXTRA_VIEWS.account = accountView;
+const _extraSheetAcct = typeof extraSheet === 'function' ? extraSheet : () => '';
+extraSheet = function (name) { // eslint-disable-line no-global-assign
+  if (name === 'welcome') return `<div class="welcome">${typeof LOGO === 'function' ? LOGO(64) : ''}<h2>Welcome to Peak</h2><p class="soft">Already used Peak on another phone? Sign in with Google to bring your sessions back.</p>
+    <button class="btn primary big gbtn" data-act="sync"><span class="g">G</span> Sign in with Google</button><button class="btn ghost" data-act="close">Start without an account</button></div>`;
+  return _extraSheetAcct(name);
+};
+document.addEventListener('click', (ev) => {
+  const b = ev.target.closest('[data-act]'); if (!b) return;
+  if (b.dataset.act === 'sync' && UI.sheet === 'welcome') { UI.sheet = null; }
+  if (b.dataset.act === 'acct-signout') ask('Sign out? Your data stays on this phone; sync stops until you sign in again.', 'Sign out', () => {
+    try { if (SYNC.token && window.google && google.accounts && google.accounts.oauth2) google.accounts.oauth2.revoke(SYNC.token, () => {}); } catch (e) { /* ignore */ }
+    SYNC.token = null; SYNC.exp = 0; try { localStorage.removeItem(TOKEN_KEY); } catch (e) { /* ignore */ }
+    D.sync = {}; save(); UI.sheet = null; setState('idle'); render(); toast('Signed out');
+  });
+});

@@ -87,7 +87,7 @@ function evalEra(e, ws) {
       onTarget: counter(st.onTarget), hot: best(st.hot), months: counter(st.months), iron: best(st.iron), perfect: counter(st.perfect),
       over: counter(st.over), fullMarks: counter(st.fullMarks), runWeeks: counter(st.runWeeks.filter(Boolean)), comeback: counter(st.comeback), joker: counter(st.joker), unbroken: best(st.unbroken)
     },
-    streak, bestStreak, jokers, now, monthNow, weeksMet: metN
+    streak, bestStreak, jokers, now, monthNow, weeksMet: metN, rawHot: st.hot.slice()
   };
 }
 function eraSummary(e) {
@@ -182,8 +182,8 @@ function careerStats(ws) {
     const ok = [...new Set(w.sets.filter((x) => x.side).map((x) => x.exId))].every((id) => { const L = w.sets.filter((x) => x.exId === id && x.side === 'L'), R = w.sets.filter((x) => x.exId === id && x.side === 'R'); return L.length === R.length && L.every((l, i) => (l.r != null ? R[i].r === l.r : R[i].t === l.t)); });
     return [w.date, (mir = ok ? mir + 1 : 0)];
   }));
-  const cl = typeof climbStats === 'function' ? climbStats(ws) : null;
-  s.summits = cl ? cl.summits : []; s.expeditions = cl ? cl.expeditions : [];
+  const cl = typeof climbStats === 'function' ? climbStats(ws, s.prByW) : null;
+  s.summits = cl ? cl.summits : []; s.expeditions = cl ? cl.expeditions : []; s.climb = cl;
   return s;
 }
 
@@ -354,6 +354,7 @@ function progressView() {
       <section class="card streak-card"><div class="streak-box big${r.streak ? ' lit' : ''}"><span class="flame">${FLAME}</span><span class="big-num">${r.streak}</span><span class="g-lab">week streak</span></div>
         <div class="streak-meta"><span><b>${r.bestStreak}</b> best</span><span><b>${r.weeksMet}</b> weeks at goal</span><span class="jokers">${Array.from({ length: 2 }, (_, i) => `<i class="${i < r.jokers ? 'on' : ''}">${FLAKE}</i>`).join('')} <b>${r.jokers}</b> joker${r.jokers === 1 ? '' : 's'}</span></div>
         <p class="muted sm">A joker is earned every 4 weeks at goal (2 max). It saves your streak when a week is missed.</p></section>
+      ${typeof climbCardHTML === 'function' ? climbCardHTML(true) : ''}
       ${trophyCard(ult)}
     </div>
     <div class="col">
@@ -379,6 +380,7 @@ function readSeen() { try { return JSON.parse(localStorage.getItem(SEEN_KEY)); }
 function writeSeen(s) { try { localStorage.setItem(SEEN_KEY, JSON.stringify(s)); } catch (e) { /* ignore */ } }
 function awardsAfterRender() {
   if (UI.view === 'session' || UI.sheet) return;
+  if (typeof climbAfterRender === 'function') climbAfterRender();
   const A = awards(); const keys = unlockedKeys(A); const seen = readSeen();
   if (!seen) { writeSeen(keys); if (keys.length) setTimeout(() => toast(keys.length + ' trophy level' + (keys.length > 1 ? 's' : '') + ' unlocked from your history'), 400); return; }
   const fresh = keys.filter((k) => !seen.includes(k)); if (!fresh.length) return;
@@ -387,7 +389,9 @@ function awardsAfterRender() {
   showNextPop();
 }
 function showNextPop() {
-  if (POP.open || !POP.queue.length) return; const { x, level } = POP.queue.shift(); POP.open = true;
+  if (POP.open || !POP.queue.length) return; const item = POP.queue.shift(); POP.open = true;
+  if (item.summit) { const host = document.createElement('div'); host.className = 'award-pop'; host.setAttribute('role', 'dialog'); host.setAttribute('aria-label', 'Summit reached'); host.innerHTML = summitPopHTML(item.summit); document.body.appendChild(host); try { if (navigator.vibrate) navigator.vibrate([30, 60, 30]); } catch (e) { /* none */ } host.addEventListener('click', (ev) => { if (ev.target.closest('[data-pop="ok"]')) { host.classList.add('out'); setTimeout(() => { host.remove(); POP.open = false; showNextPop(); }, 220); } }); return; }
+  const { x, level } = item;
   const metal = metalOf(level - 1, x.max); const col = METAL_COL[metal];
   const host = document.createElement('div'); host.className = 'award-pop'; host.setAttribute('role', 'dialog'); host.setAttribute('aria-label', 'Trophy unlocked');
   host.innerHTML = `<div class="award-card" style="--m:${col}"><div class="award-face"><span class="medal big" style="--m:${col}">${x.t.fam === 'ultimate' ? '★' : CUP}</span><span class="eyebrow">${x.t.fam === 'secret' ? 'SECRET TROPHY' : 'TROPHY UNLOCKED'}</span><h2>${esc(x.t.name)}</h2><p class="soft">${esc(x.t.cond)}</p><span class="tag" style="color:${col};border-color:${col}">${metal}${x.max > 1 ? ' · level ' + level + '/' + x.max : ''}</span><button class="btn primary big" data-pop="ok">Nice</button></div></div>${['Gold', 'Platinum', 'Diamond'].includes(metal) ? confettiHTML() : ''}`;

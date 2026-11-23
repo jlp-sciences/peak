@@ -1,7 +1,7 @@
 /* Peak — app logic (vanilla JS, no build step). */
 'use strict';
 
-const APP_VERSION = '0.9.0';
+const APP_VERSION = '1.0.0';
 const STORE_KEY = 'peak.v1';
 
 /* ---------- helpers ---------- */
@@ -396,7 +396,7 @@ function toast(msg) {
 }
 
 /* ---------- views ---------- */
-const navOn = (k) => UI.view === k || (k === 'exercises' && UI.view === 'exercise') || (k === 'today' && UI.view === 'progress');
+const navOn = (k) => UI.view === k || (k === 'exercises' && UI.view === 'exercise') || (k === 'today' && (UI.view === 'progress' || UI.view === 'account'));
 function navHTML() {
   const items = [['today', 'Today'], ['calendar', 'Calendar'], ['exercises', 'Exercises'], ['analysis', 'Analysis'], ['body', 'Body']];
   return `<nav class="nav" aria-label="Main"><div class="nav-logo">${LOGO(34)}</div>${items.map(([k, l]) => `<button class="nav-btn${navOn(k) ? ' on' : ''}" data-act="go" data-v="${k}" ${navOn(k) ? 'aria-current="page"' : ''}>${svg(k, 24)}<span>${l}</span></button>`).join('')}</nav>`;
@@ -437,7 +437,7 @@ function viewToday() {
   }
   const ran = !!D.runs[iso()];
   const recent = D.workouts.filter((x) => x.end).slice(-3).reverse();
-  return `<header class="top"><div><span class="muted sm">${longDate(iso())}</span><h1>Today</h1></div><div class="row">${typeof syncChip === 'function' ? syncChip() : ''}<button class="icon-btn" aria-label="More options" data-act="sheet" data-v="more">${svg('more')}</button></div></header>
+  return `<header class="top"><div><span class="muted sm">${longDate(iso())}</span><h1>Today</h1></div><div class="row">${typeof syncChip === 'function' ? syncChip() : ''}${typeof accountButton === 'function' ? accountButton() : ''}<button class="icon-btn" aria-label="More options" data-act="sheet" data-v="more">${svg('more')}</button></div></header>
   <div class="today-grid">
     <div class="col">
       <section class="card">
@@ -450,6 +450,7 @@ function viewToday() {
     </div>
     <div class="col">
       ${typeof goalsCardHTML === 'function' ? goalsCardHTML() : ''}
+      ${typeof climbCardHTML === 'function' ? climbCardHTML(false) : ''}
       <div class="quick">
         <button class="btn outline" data-act="free">${svg('plus', 18, 2)} Free session</button>
         <button class="btn ${ran ? 'filled' : 'outline'}" data-act="run" aria-pressed="${ran}">${svg('run', 18, 2)} ${ran ? 'Ran today ✓' : 'I ran today'}</button>
@@ -619,6 +620,7 @@ function sheetHTML() {
       <p class="muted sm">Each plan keeps its place when you switch.</p>`;
   } else if (UI.sheet === 'more') {
     body = `<h2>Settings & data</h2>
+      ${typeof avatarHTML === 'function' ? `<button class="list-btn acct-row" data-act="go" data-v="account">${avatarHTML(36)}<span><b>Account</b><small>${D.sync && D.sync.profile ? esc(D.sync.profile.email) : 'Sign in with Google'}</small></span></button>` : ''}
       <label class="toggle"><span><b>Sound at end of rest</b></span><input type="checkbox" data-set="sound" ${D.settings.sound ? 'checked' : ''}></label>
       <label class="toggle"><span><b>Vibrate at end of rest</b></span><input type="checkbox" data-set="vibrate" ${D.settings.vibrate ? 'checked' : ''}></label>
       ${typeof syncSettings === 'function' ? syncSettings() : ''}

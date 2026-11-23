@@ -399,3 +399,48 @@ body:has(#rest:not([hidden])) .selbar { bottom: calc(104px + env(safe-area-inset
 @keyframes flame-grow { 0% { transform: scale(.2); opacity: 0; } 100% { transform: scale(1.3); opacity: 1; } }
 .link { background: none; border: 0; color: var(--soft); font-weight: 600; font-size: 13px; padding: 4px 0; }
 .award-card { position: relative; z-index: 1; } .confetti { z-index: 0; }
+
+/* v1.0 — climber and account */
+.climb-card { display: flex; flex-direction: column; gap: 8px; }
+.climb-scene { width: 100%; height: auto; border-radius: 14px; background: linear-gradient(#1B2433, #141922); display: block; }
+.climber { transition: transform 1.4s cubic-bezier(.4,.1,.3,1); }
+.climber.walking .leg-a { animation: step .35s ease-in-out infinite alternate; transform-origin: 0 -12px; }
+.climber.walking .leg-b { animation: step .35s ease-in-out infinite alternate-reverse; transform-origin: 0 -12px; }
+@keyframes step { from { transform: rotate(-18deg); } to { transform: rotate(18deg); } }
+.camp-t { font: 700 9px var(--display); fill: rgba(255,255,255,.45); }
+.camp.pitch path { animation: pitch .6s cubic-bezier(.3,1.6,.5,1); transform-origin: 0 0; }
+@keyframes pitch { from { transform: scale(0); } to { transform: scale(1); } }
+.cloud { animation: drift 14s ease-in-out infinite alternate; } .cloud.c2 { animation-duration: 18s; }
+@keyframes drift { from { transform: translateX(-10px); } to { transform: translateX(14px); } }
+.peaks { display: flex; flex-direction: column; gap: 4px; margin-top: 6px; } .peaks .eyebrow { margin-top: 8px; }
+.peak-row { display: flex; align-items: center; gap: 10px; padding: 6px 8px; border-radius: 10px; }
+.peak-row b { font-size: 14px; } .peak-row small { display: block; font-size: 12px; color: var(--muted); }
+.peak-row.cur { background: var(--card2); } .peak-row:not(.done):not(.cur) { opacity: .55; }
+.pk-dot { width: 20px; height: 20px; border-radius: 50%; border: 2px solid var(--line2); display: inline-flex; align-items: center; justify-content: center; color: var(--bg); flex-shrink: 0; }
+.peak-row.done .pk-dot { background: #4ADE80; border-color: #4ADE80; } .peak-row.cur .pk-dot { border-color: var(--text); }
+.summit-face svg { overflow: visible; }
+.summit-face .plant { animation: plant .7s cubic-bezier(.3,1.6,.5,1) .4s both; transform-origin: 100px 18px; }
+@keyframes plant { from { transform: translateY(-40px) scale(.6); opacity: 0; } to { transform: none; opacity: 1; } }
+.summit-face .cl.l { animation: part-l 1.4s ease-out .2s both; } .summit-face .cl.r { animation: part-r 1.4s ease-out .2s both; }
+@keyframes part-l { from { transform: translateX(60px); } to { transform: translateX(-20px); opacity: .4; } }
+@keyframes part-r { from { transform: translateX(-60px); } to { transform: translateX(20px); opacity: .4; } }
+.gear-drop { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-radius: 14px; background: var(--bg2); }
+.gear-drop .bag { display: inline-flex; color: #F2C14E; animation: drop .7s cubic-bezier(.3,1.5,.5,1) .9s both; }
+.gear-drop span:last-child { display: flex; flex-direction: column; text-align: left; }
+@keyframes drop { from { transform: translateY(-30px); opacity: 0; } to { transform: none; opacity: 1; } }
+.avatar { display: inline-flex; align-items: center; justify-content: center; border-radius: 50%; overflow: hidden; background: var(--card2); color: var(--soft); font: 700 14px var(--display); flex-shrink: 0; }
+.avatar img { width: 100%; height: 100%; object-fit: cover; }
+.acct-btn { padding: 4px; }
+.acct-row { gap: 12px; }
+.acct-grid { display: grid; gap: 12px; } @media (min-width: 980px) { .acct-grid { grid-template-columns: 1fr 1fr; align-items: start; } }
+.acct-card { display: flex; flex-direction: column; align-items: center; gap: 10px; text-align: center; }
+.acct-card .avatar { font-size: 26px; }
+.acct-id { display: flex; flex-direction: column; gap: 2px; } .acct-id b { font-size: 18px; }
+.acct-sync { display: inline-flex; align-items: center; gap: 6px; }
+.sync-dot { width: 8px; height: 8px; border-radius: 50%; background: #FF9E4A; } .sync-dot.on { background: #4ADE80; }
+.gbtn { display: inline-flex; align-items: center; justify-content: center; gap: 10px; }
+.gbtn .g { width: 22px; height: 22px; border-radius: 50%; background: #fff; color: #4285F4; font: 800 14px/22px var(--display); }
+.sm-num { font-size: 20px; }
+.welcome { display: flex; flex-direction: column; align-items: center; gap: 10px; text-align: center; padding-top: 8px; }
+.welcome .btn { align-self: stretch; }
+.acct-grid .tiles { grid-template-columns: 1fr 1fr; }
