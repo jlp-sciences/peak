@@ -1,7 +1,7 @@
 /* Peak — app logic (vanilla JS, no build step). */
 'use strict';
 
-const APP_VERSION = '1.7.1';
+const APP_VERSION = '1.7.2';
 const STORE_KEY = 'peak.v1';
 
 /* ---------- helpers ---------- */
@@ -800,7 +800,7 @@ document.addEventListener('click', (ev) => {
 });
 document.addEventListener('change', (ev) => {
   const t = ev.target;
-  if (t.dataset && t.dataset.in && t.dataset.in !== 'pq') { const w = active(); if (w && w.items[w.cur]) editRow(w, w.items[w.cur], t.dataset.in, Math.max(0, Number(String(t.value).replace(',', '.')) || 0)); }
+  if (t.dataset && t.dataset.in && t.dataset.in !== 'pq' && t.dataset.in !== 'exq') { const w = active(); if (w && w.items[w.cur]) editRow(w, w.items[w.cur], t.dataset.in, Math.max(0, Number(String(t.value).replace(',', '.')) || 0)); }
   if (t.dataset && t.dataset.set) { D.settings[t.dataset.set] = t.checked; save(); }
 });
 document.addEventListener('input', (ev) => {
@@ -809,9 +809,9 @@ document.addEventListener('input', (ev) => {
     const d = dupName(t.value, t.dataset.dup || null), w = $('#nx-dup');
     if (w) { w.hidden = !d; w.textContent = d ? '“' + d.name + '” already exists in your list.' : ''; }
   }
-  if (t.dataset && t.dataset.in === 'pq') {
-    UI.pq = t.value; const pos = t.selectionStart; render();
-    const n = $('[data-in="pq"]'); if (n) { n.focus(); try { n.setSelectionRange(pos, pos); } catch (e) { /* ignore */ } }
+  if (t.dataset && (t.dataset.in === 'pq' || t.dataset.in === 'exq')) {
+    const k = t.dataset.in; UI[k] = t.value; const pos = t.selectionStart; render();
+    const n = $(`[data-in="${k}"]`); if (n) { n.focus(); try { n.setSelectionRange(pos, pos); } catch (e) { /* ignore */ } }
   }
 });
 function importFile(ev) {

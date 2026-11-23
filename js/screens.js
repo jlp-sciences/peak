@@ -100,10 +100,14 @@ function exercisesView() {
   const counts = {}; doneWorkouts().forEach((w) => w.sets.forEach((s) => { counts[s.exId] = (counts[s.exId] || 0) + 1; }));
   const inPlan = new Set(); Object.values(D.plans).forEach((p) => p.sessions.forEach((s) => Object.values(s.tpl).forEach((bl) => bl.forEach(([, items]) => items.forEach((it) => inPlan.add(it.ex))))));
   const all = Object.values(D.exercises);
-  const list = all.filter((e) => !UI.exCat || e.cat === UI.exCat).sort((a, b) => a.name.localeCompare(b.name));
+  const norm = (x) => (x || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  const q = norm(UI.exq).trim();
+  const list = all.filter((e) => (q ? q.split(/\s+/).every((wd) => norm(e.name + ' ' + e.cat).includes(wd)) : !UI.exCat || e.cat === UI.exCat)).sort((a, b) => a.name.localeCompare(b.name));
   const catsUsed = Object.keys(CATS).filter((c) => all.some((e) => e.cat === c));
   return `<header class="top"><h1>Exercises</h1><button class="icon-btn solid" aria-label="New exercise" data-act="sheet" data-v="newex">${svg('plus', 22, 2.4)}</button></header>
-  <div class="chips scroll mb"><button class="chip-btn${!UI.exCat ? ' on' : ''}" data-act="ex-cat" data-v="">All</button>${catsUsed.map((c) => `<button class="chip-btn${UI.exCat === c ? ' on' : ''}" data-act="ex-cat" data-v="${c}"><i class="dot" style="background:${CATS[c]}"></i>${c}</button>`).join('')}</div>
+  <input class="search mb" type="search" placeholder="Search ${all.length} exercises" aria-label="Search exercises" data-in="exq" value="${esc(UI.exq || '')}">
+  ${q ? `<p class="muted sm mb">${list.length} result${list.length === 1 ? '' : 's'}${list.length ? '' : ' — try another word, or create it with +'}</p>` : ''}
+  <div class="chips scroll mb"${q ? ' hidden' : ''}><button class="chip-btn${!UI.exCat ? ' on' : ''}" data-act="ex-cat" data-v="">All</button>${catsUsed.map((c) => `<button class="chip-btn${UI.exCat === c ? ' on' : ''}" data-act="ex-cat" data-v="${c}"><i class="dot" style="background:${CATS[c]}"></i>${c}</button>`).join('')}</div>
   <section class="card list-card">${list.map((e) => `<button class="ex-line" data-act="open-ex" data-v="${e.id}"><i class="dot" style="background:${CATS[e.cat]}"></i><span class="ex-name"><b>${esc(e.name)}</b><small>${esc(e.cat)} · ${esc(TYPES[e.type])} · rest ${fmtT(e.rest || 0)}${inPlan.has(e.id) ? ' · in plan' : ''}</small></span>${isCustom(e) ? '<span class="tag added">Added</span>' : ''}${e.uni ? '<span class="tag">L/R</span>' : ''}<span class="muted sm">${counts[e.id] ? counts[e.id] + ' sets' : ''}</span></button>`).join('')}</section>`;
 }
 
