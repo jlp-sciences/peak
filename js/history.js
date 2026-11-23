@@ -116,7 +116,7 @@ document.addEventListener('click', (ev) => {
   switch (a) {
     case 'cal-mode': UI.calMode = b.dataset.v; render(); break;
     case 'view-history': UI.calMode = 'list'; go('calendar'); window.scrollTo(0, 0); break;
-    case 'w-menu-del': if (!w) break; ask('Delete this session and its ' + w.sets.length + ' sets? This cannot be undone.', 'Delete', () => { D.workouts = D.workouts.filter((x) => x.id !== w.id); save(); UI.sheet = null; UI.wId = null; render(); toast('Session deleted'); }); break;
+    case 'w-menu-del': if (!w) break; ask('Delete this session and its ' + w.sets.length + ' sets? This cannot be undone.', 'Delete', () => { D.workouts = D.workouts.filter((x) => x.id !== w.id); if (w.planId && typeof refreshPlanDone === 'function') refreshPlanDone(w.planId); save(); UI.sheet = null; UI.wId = null; render(); toast('Session deleted'); }); break;
     case 'hist-open': UI.wId = b.dataset.v; UI.sheet = null; go('workout'); window.scrollTo(0, 0); break;
     case 'hset': UI.hSet = b.dataset.v; UI.sheet = 'hset'; render(); break;
     case 'hs-side': { const s = w && w.sets.find((x) => x.id === UI.hSet); if (s) { s.side = b.dataset.v; document.querySelectorAll('.sheet .side').forEach((n) => n.classList.toggle('on', n === b)); } break; }
@@ -137,7 +137,7 @@ document.addEventListener('click', (ev) => {
       const i = w.sets.lastIndexOf(last); w.sets.splice(i >= 0 ? i + 1 : w.sets.length, 0, s); recalcPct(w); w.upd = Date.now(); save(); UI.hSet = s.id; UI.sheet = 'hset'; render(); break;
     }
     case 'hist-addex': UI.histAdd = true; UI.pq = ''; UI.pcat = null; UI.sheet = 'picker'; render(); break;
-    case 'hist-del': if (!w) break; ask('Delete this session and its ' + w.sets.length + ' sets? This cannot be undone.', 'Delete', () => { D.workouts = D.workouts.filter((x) => x.id !== w.id); save(); UI.sheet = null; UI.wId = null; go('calendar'); toast('Session deleted'); }); break;
+    case 'hist-del': if (!w) break; ask('Delete this session and its ' + w.sets.length + ' sets? This cannot be undone.', 'Delete', () => { D.workouts = D.workouts.filter((x) => x.id !== w.id); if (w.planId && typeof refreshPlanDone === 'function') refreshPlanDone(w.planId); save(); UI.sheet = null; UI.wId = null; go('calendar'); toast('Session deleted'); }); break;
     case 'we-save': {
       if (!w) break; const name = ($('#we-name').value || '').trim(); const date = $('#we-date').value;
       if (name) w.name = name; if (date && /^\d{4}-\d{2}-\d{2}$/.test(date)) { w.date = date; w.late = w.late || date !== iso(new Date(w.start)); }

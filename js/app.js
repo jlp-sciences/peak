@@ -1,7 +1,7 @@
 /* Peak — app logic (vanilla JS, no build step). */
 'use strict';
 
-const APP_VERSION = '1.8.0';
+const APP_VERSION = '1.8.1';
 const STORE_KEY = 'peak.v1';
 
 /* ---------- helpers ---------- */
@@ -191,7 +191,7 @@ function startWorkout(planId, sessionId, opts) {
   if (w.date !== iso()) w.late = true;
   if (planId) {
     const plan = D.plans[planId]; const s = plan.sessions.find((x) => x.id === sessionId); const pr = progOf(planId);
-    Object.assign(w, { planId, sessionId, name: s.name + ' — ' + s.title, cycle: cycleOf(plan).key, week: pr.week, light: isLightWeek(plan), match: !!(opts && opts.match), items: buildItems(plan, s, opts) });
+    Object.assign(w, { planId, sessionId, name: s.name + ' — ' + s.title, cycle: cycleOf(plan).key, week: pr.week, round: pr.round || 0, light: isLightWeek(plan), match: !!(opts && opts.match), items: buildItems(plan, s, opts) });
   } else {
     Object.assign(w, { name: 'Free session', items: [] });
   }
@@ -338,7 +338,7 @@ function closeWorkout(w, quiet) {
     pr.upd = Date.now();
     const req = plan.sessions.filter((s) => s.required);
     if (req.length && req.every((s) => pr.done[s.id])) {
-      pr.done = {}; pr.week += 1; pr.since = iso();
+      pr.done = {}; pr.week += 1; pr.since = iso(); pr.round = (pr.round || 0) + 1;
       if (pr.week > plan.weeks) { pr.week = 1; pr.cycle = (pr.cycle + 1) % plan.cycles.length; pr.csince = iso(); }
       toast('Week complete — on to ' + cycleOf(plan).key + ' · week ' + pr.week);
     } else toast('Session saved');
@@ -438,8 +438,18 @@ function catChips(items) {
   return Object.keys(counts).map((c) => `<span class="chip"><i class="dot" style="background:${CATS[c] || '#94A3B8'}"></i>${esc(c)} ${counts[c]}</span>`).join('');
 }
 
+/* the sessions ticked for the current plan week come from the sessions actually saved (a deleted session is no longer done) */
+function refreshPlanDone(planId) {
+  const plan = D.plans[planId]; if (!plan) return false; const pr = progOf(planId); const key = cycleOf(plan).key;
+  const same = (w) => (pr.round ? w.round === pr.round // each completed week starts a new round
+    : !w.round && w.week === pr.week && (!w.cycle || w.cycle === key) && (!pr.since || w.date >= pr.since || iso(new Date(w.start || 0)) >= pr.since));
+  const done = {}; D.workouts.forEach((w) => { if (w.end && w.planId === planId && same(w)) done[w.sessionId] = true; });
+  const before = Object.keys(pr.done || {}).filter((k) => pr.done[k]).sort().join(); const after = Object.keys(done).sort().join();
+  if (before === after) return false; pr.done = done; pr.upd = Date.now(); return true;
+}
 function viewToday() {
   const plan = activePlan(); const pr = progOf(plan.id); const cyc = cycleOf(plan); const w = active();
+  if (refreshPlanDone(plan.id)) save();
   const segs = Array.from({ length: plan.weeks }, (_, i) => `<i class="seg${i + 1 < pr.week ? ' full' : i + 1 === pr.week ? ' cur' : ''}"></i>`).join('');
   const chips = plan.sessions.map((s) => {
     const done = !!pr.done[s.id];
