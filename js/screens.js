@@ -83,11 +83,16 @@ function calendarView() {
 }
 
 /* ---------- guides ---------- */
+function hasGuide(id) { const e = D.exercises[id]; return !!((typeof GUIDES !== 'undefined' && GUIDES[id]) || (e && e.desc)); }
+const isCustom = (e) => !!(e && (e.custom || (/^x/.test(e.id) && !SEED_EXERCISES.some((x) => x.id === e.id))));
+function dupName(name, exceptId) { const n = (name || '').trim().toLowerCase(); return n ? Object.values(D.exercises).find((e) => e.id !== exceptId && e.name.trim().toLowerCase() === n) : null; }
 function guideHTML(exId) {
-  const g = typeof GUIDES !== 'undefined' && GUIDES[exId]; if (!g) return '';
-  const frames = g.frames.map(([label, s], i) => `<figure class="frame"><figcaption>${i + 1} · ${esc(label)}</figcaption><svg viewBox="0 0 340 230" role="img" aria-label="${esc(label)}">${GUIDE_DEFS}${s}</svg></figure>`).join('');
+  const g = typeof GUIDES !== 'undefined' && GUIDES[exId]; const e = D.exercises[exId];
   const row = (k, v, cls) => `<div class="g-row"><span class="eyebrow${cls ? ' ' + cls : ''}">${k}</span><span>${esc(v)}</span></div>`;
-  return `<div class="frames">${frames}</div><div class="g-text">${row('SETUP', g.setup)}${row('MOVE', g.move)}${row('KEY', g.key)}${row('BENEFIT', g.benefit, 'ben')}</div>`;
+  const note = e && e.desc ? row(g ? 'YOUR NOTES' : 'DESCRIPTION', e.desc) : '';
+  if (!g) return note ? `<div class="g-text">${note}</div>` : '';
+  const frames = g.frames.length ? `<div class="frames">${g.frames.map(([label, s], i) => `<figure class="frame"><figcaption>${i + 1} · ${esc(label)}</figcaption><svg viewBox="0 0 340 230" role="img" aria-label="${esc(label)}">${GUIDE_DEFS}${s}</svg></figure>`).join('')}</div>` : '<p class="muted sm g-soon">Drawings coming soon.</p>';
+  return `${frames}<div class="g-text">${row('SETUP', g.setup)}${row('MOVE', g.move)}${row('KEY', g.key)}${row('BENEFIT', g.benefit, 'ben')}${note}</div>`;
 }
 
 /* ---------- exercises ---------- */
@@ -99,7 +104,7 @@ function exercisesView() {
   const catsUsed = Object.keys(CATS).filter((c) => all.some((e) => e.cat === c));
   return `<header class="top"><h1>Exercises</h1><button class="icon-btn solid" aria-label="New exercise" data-act="sheet" data-v="newex">${svg('plus', 22, 2.4)}</button></header>
   <div class="chips scroll mb"><button class="chip-btn${!UI.exCat ? ' on' : ''}" data-act="ex-cat" data-v="">All</button>${catsUsed.map((c) => `<button class="chip-btn${UI.exCat === c ? ' on' : ''}" data-act="ex-cat" data-v="${c}"><i class="dot" style="background:${CATS[c]}"></i>${c}</button>`).join('')}</div>
-  <section class="card list-card">${list.map((e) => `<button class="ex-line" data-act="open-ex" data-v="${e.id}"><i class="dot" style="background:${CATS[e.cat]}"></i><span class="ex-name"><b>${esc(e.name)}</b><small>${esc(e.cat)} · ${esc(TYPES[e.type])} · rest ${fmtT(e.rest || 0)}${inPlan.has(e.id) ? ' · in plan' : ''}</small></span>${e.uni ? '<span class="tag">L/R</span>' : ''}<span class="muted sm">${counts[e.id] ? counts[e.id] + ' sets' : ''}</span></button>`).join('')}</section>`;
+  <section class="card list-card">${list.map((e) => `<button class="ex-line" data-act="open-ex" data-v="${e.id}"><i class="dot" style="background:${CATS[e.cat]}"></i><span class="ex-name"><b>${esc(e.name)}</b><small>${esc(e.cat)} · ${esc(TYPES[e.type])} · rest ${fmtT(e.rest || 0)}${inPlan.has(e.id) ? ' · in plan' : ''}</small></span>${isCustom(e) ? '<span class="tag added">Added</span>' : ''}${e.uni ? '<span class="tag">L/R</span>' : ''}<span class="muted sm">${counts[e.id] ? counts[e.id] + ' sets' : ''}</span></button>`).join('')}</section>`;
 }
 
 function chartSVG(rows, ex, metric) {
@@ -124,14 +129,15 @@ function exerciseView() {
   const ex = D.exercises[UI.exId]; if (!ex) { UI.view = 'exercises'; return exercisesView(); }
   const d = exDetail(ex);
   return `<header class="top"><button class="icon-btn" aria-label="Back to exercises" data-act="go" data-v="exercises">${svg('back')}</button><div class="grow"><div class="strong">${esc(ex.name)}</div><span class="muted sm"><i class="dot" style="background:${CATS[ex.cat]}"></i> ${esc(ex.cat)} · ${esc(TYPES[ex.type])}${ex.uni ? ' · L/R' : ''} · rest ${fmtT(ex.rest || 0)}</span></div><button class="btn small outline" data-act="sheet" data-v="editex">Edit</button></header>
+  <button class="btn primary big mb add-today" data-act="ex-add-today" data-v="${ex.id}">${svg('plus', 18, 2.4)} ${active() ? 'Add to current session' : "Add to today's session"}</button>
   ${d.tabs}<section class="card">${d.body}</section>`;
 }
 /* tabs + body of an exercise (used by the Exercises screen and by the sheet opened from a session) */
 function exDetail(ex) {
   const metrics = METRICS_BY_TYPE[ex.type]; if (!metrics.includes(UI.metric)) UI.metric = metrics[0];
   const ws = doneWorkouts().filter((w) => w.sets.some((s) => s.exId === ex.id)).reverse();
-  const tabs = (typeof GUIDES !== 'undefined' && GUIDES[ex.id] ? [['guide', 'Guide']] : []).concat([['history', 'History'], ['graph', 'Graph'], ['records', 'Records']]);
-  if (!UI.exTab || (UI.exTab === 'guide' && !GUIDES[ex.id])) UI.exTab = 'history';
+  const tabs = (hasGuide(ex.id) ? [['guide', 'Guide']] : []).concat([['history', 'History'], ['graph', 'Graph'], ['records', 'Records']]);
+  if (!UI.exTab || (UI.exTab === 'guide' && !hasGuide(ex.id))) UI.exTab = 'history';
   let body = '';
   const fmtSet = (s) => [s.w != null ? (ex.type === 'bwkg' ? (s.w ? 'BW+' + fmtW(s.w) : 'BW') : fmtW(s.w)) : null, s.r != null ? s.r : null, s.t != null ? fmtT(s.t) : null, s.d != null ? s.d + ' m' : null].filter((x) => x != null).join(' × ');
   if (UI.exTab === 'guide') {
@@ -283,12 +289,13 @@ function extraSheet(name) {
   if (name === 'editex') {
     const e = D.exercises[UI.exId]; if (!e) return '';
     return `<h2>Edit exercise</h2>
-      <label class="field">Name<input id="nx-name" type="text" value="${esc(e.name)}"></label>
+      <label class="field">Name<input id="nx-name" type="text" value="${esc(e.name)}" data-dup="${e.id}"></label><p class="dup-warn" id="nx-dup" hidden></p>
       <label class="field">Category<select id="nx-cat">${Object.keys(CATS).map((c) => `<option${c === e.cat ? ' selected' : ''}>${c}</option>`).join('')}</select></label>
       <label class="field">Type<select id="nx-type">${Object.entries(TYPES).map(([k, v]) => `<option value="${k}"${k === e.type ? ' selected' : ''}>${v}</option>`).join('')}</select></label>
       <label class="field">Equipment<select id="nx-eq">${Object.entries(EQUIP).map(([k, v]) => `<option value="${k}"${k === e.equip ? ' selected' : ''}>${v}</option>`).join('')}</select></label>
       <label class="field">Default rest (seconds)<input id="nx-rest" type="number" inputmode="numeric" value="${e.rest || 0}"></label>
       <label class="toggle"><span><b>Unilateral · track L / R</b><small>Left first, right matches</small></span><input type="checkbox" id="nx-uni"${e.uni ? ' checked' : ''}></label>
+      <label class="field">${GUIDES[e.id] ? 'Your notes' : 'Description'} <small class="muted">(optional)</small><textarea id="nx-desc" rows="3" placeholder="How you do it, cues, machine settings…">${esc(e.desc || '')}</textarea></label>
       <button class="btn primary big" data-act="editex-save">Save changes</button>`;
   }
   return '';
@@ -333,6 +340,8 @@ document.addEventListener('click', (ev) => {
     case 'editex-save': {
       const e = D.exercises[UI.exId]; if (!e) break;
       const name = ($('#nx-name').value || '').trim(); if (!name) { toast('Give the exercise a name'); break; }
+      const dup = dupName(name, e.id); if (dup) { toast('“' + dup.name + '” already exists'); break; }
+      const desc = ($('#nx-desc') && $('#nx-desc').value || '').trim(); if (desc) e.desc = desc; else delete e.desc;
       Object.assign(e, { upd: Date.now(), name, cat: $('#nx-cat').value, type: $('#nx-type').value, equip: $('#nx-eq').value, uni: $('#nx-uni').checked, rest: Math.max(0, Number($('#nx-rest').value) || 0) });
       save(); UI.sheet = null; toast('Exercise updated'); render(); break;
     }

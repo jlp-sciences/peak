@@ -644,12 +644,13 @@ function sheetHTML() {
       <button class="btn outline" data-act="sheet" data-v="newex">${svg('plus', 18, 2)} New exercise</button>`;
   } else if (UI.sheet === 'newex') {
     body = `<h2>New exercise</h2>
-      <label class="field">Name<input id="nx-name" type="text" placeholder="e.g. Copenhagen plank"></label>
+      <label class="field">Name<input id="nx-name" type="text" placeholder="e.g. Copenhagen plank" data-dup=""></label><p class="dup-warn" id="nx-dup" hidden></p>
       <label class="field">Category<select id="nx-cat">${Object.keys(CATS).map((c) => `<option>${c}</option>`).join('')}</select></label>
       <label class="field">Type<select id="nx-type">${Object.entries(TYPES).map(([k, v]) => `<option value="${k}">${v}</option>`).join('')}</select></label>
       <label class="field">Equipment<select id="nx-eq">${Object.entries(EQUIP).map(([k, v]) => `<option value="${k}">${v}</option>`).join('')}</select></label>
       <label class="field">Default rest (seconds)<input id="nx-rest" type="number" inputmode="numeric" value="90"></label>
       <label class="toggle"><span><b>Unilateral · track L / R</b><small>Left first, right matches</small></span><input type="checkbox" id="nx-uni"></label>
+      <label class="field">Description <small class="muted">(optional)</small><textarea id="nx-desc" rows="3" placeholder="How you do it, cues, machine settings…"></textarea></label>
       <button class="btn primary big" data-act="newex-save">Save exercise</button>`;
   } else if (UI.sheet === 'exinfo' && typeof exDetail === 'function' && D.exercises[UI.exId]) {
     const ex = D.exercises[UI.exId]; const d = exDetail(ex);
@@ -702,7 +703,7 @@ document.addEventListener('click', (ev) => {
     case 'free': startWorkout(null, null, { date: b.dataset.date || null }); break;
     case 'run': { toggleRun(iso()); save(); render(); break; }
     case 'setplan': D.settings.activePlan = b.dataset.v; D.settings.upd = Date.now(); save(); UI.sheet = null; render(); break;
-    case 'exinfo': UI.exId = b.dataset.v; UI.exTab = (typeof GUIDES !== 'undefined' && GUIDES[UI.exId]) ? 'guide' : 'history'; UI.sheet = 'exinfo'; render(); break;
+    case 'exinfo': UI.exId = b.dataset.v; UI.exTab = hasGuide(UI.exId) ? 'guide' : 'history'; UI.sheet = 'exinfo'; render(); break;
     case 'info': { ev.preventDefault(); const pop = document.querySelector(`.info-pop[data-info="${b.dataset.v}"]`); if (pop) { pop.hidden = !pop.hidden; b.setAttribute('aria-expanded', String(!pop.hidden)); } break; }
     case 'selex': { const i = Number(b.dataset.i); UI.selItems = UI.selItems.includes(i) ? UI.selItems.filter((x) => x !== i) : UI.selItems.concat(i); render(); break; }
     case 'sel-cancel': UI.selMode = false; UI.selItems = []; render(); break;
@@ -738,10 +739,18 @@ document.addEventListener('click', (ev) => {
     case 'replace-other': UI.replaceMode = true; UI.pq = ''; UI.pcat = null; UI.sheet = 'picker'; render(); break;
     case 'addex': if (w && UI.replaceMode) { UI.replaceMode = false; replaceItem(w, w.cur, b.dataset.v); UI.sheet = null; render(); break; }
       if (w) { w.items.push({ exId: b.dataset.v, block: 'Added', presc: null }); w.cur = w.items.length - 1; UI.entry = null; UI.lastSet = null; save(); } UI.sheet = null; render(); break;
+    case 'ex-add-today': {
+      const id = b.dataset.v; if (!D.exercises[id]) break;
+      const fresh = !active(); if (fresh) startWorkout(null, null);
+      const cw = active(); cw.items.push({ exId: id, block: 'Added', presc: null }); cw.cur = cw.items.length - 1; UI.entry = null; UI.lastSet = null;
+      save(); toast(D.exercises[id].name + (fresh ? ' — free session started' : ' added')); go('session'); break;
+    }
     case 'newex-save': {
       const name = ($('#nx-name').value || '').trim(); if (!name) { toast('Give the exercise a name'); break; }
-      const e = { id: 'x' + uid(), name, cat: $('#nx-cat').value, type: $('#nx-type').value, equip: $('#nx-eq').value, uni: $('#nx-uni').checked, rest: Math.max(0, Number($('#nx-rest').value) || 0) };
-      e.upd = Date.now(); D.exercises[e.id] = e;
+      const dup = dupName(name); if (dup) { toast('“' + dup.name + '” already exists'); break; }
+      const desc = ($('#nx-desc').value || '').trim();
+      const e = { id: 'x' + uid(), custom: true, name, cat: $('#nx-cat').value, type: $('#nx-type').value, equip: $('#nx-eq').value, uni: $('#nx-uni').checked, rest: Math.max(0, Number($('#nx-rest').value) || 0) };
+      if (desc) e.desc = desc; e.upd = Date.now(); D.exercises[e.id] = e;
       if (UI.pickPlan && typeof pePicked === 'function') { save(); toast(name + ' created'); pePicked(e.id); break; }
       if (w) { w.items.push({ exId: e.id, block: 'Added', presc: null }); w.cur = w.items.length - 1; UI.entry = null; }
       save(); UI.sheet = null; toast(name + ' created'); render(); break;
@@ -763,6 +772,10 @@ document.addEventListener('change', (ev) => {
 });
 document.addEventListener('input', (ev) => {
   const t = ev.target;
+  if (t.id === 'nx-name' && t.dataset.dup != null) {
+    const d = dupName(t.value, t.dataset.dup || null), w = $('#nx-dup');
+    if (w) { w.hidden = !d; w.textContent = d ? '“' + d.name + '” already exists in your list.' : ''; }
+  }
   if (t.dataset && t.dataset.in === 'pq') {
     UI.pq = t.value; const pos = t.selectionStart; render();
     const n = $('[data-in="pq"]'); if (n) { n.focus(); try { n.setSelectionRange(pos, pos); } catch (e) { /* ignore */ } }

@@ -515,3 +515,10 @@ body:has(#rest:not([hidden])) .selbar { bottom: calc(104px + env(safe-area-inset
 .sess-note { margin-top: 8px; }
 .last-note { margin: 4px 0; padding: 6px 10px; border-radius: 10px; background: rgba(255,158,74,.1); color: #FFB878; font-size: 13px; }
 .danger-t.btn { margin-top: 6px; }
+/* v1.1 — library, custom exercises */
+.tag.added { background: rgba(94,162,255,.16); color: #8FC0FF; border-color: rgba(94,162,255,.4); }
+.dup-warn { margin: -6px 0 10px; color: #FBBF24; font-size: 13px; }
+.g-soon { margin: 0 0 10px; }
+.add-today { width: 100%; }
+textarea { font: inherit; }
+.field textarea { width: 100%; padding: 12px 14px; border-radius: 12px; border: 1px solid var(--line); background: var(--bg2); font-size: 16px; color: var(--text); text-transform: none; letter-spacing: 0; resize: vertical; }
