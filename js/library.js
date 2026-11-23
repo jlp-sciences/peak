@@ -75,9 +75,57 @@ const LIBRARY = [
   ['wallball', 'Wall ball', 'Conditioning', 'wr', false, 'mb', 90, 'Stand facing a wall holding a med ball at the chest.', 'Squat, then drive up and throw the ball to the target, catch it and go again.', 'Full squat depth; catch into the next rep.', 'Builds legs, shoulders and conditioning.'],
   ['ropes', 'Battle ropes', 'Conditioning', 'time', false, 'none', 60, 'Hold a rope end in each hand, athletic stance.', 'Make fast alternating waves for the set time.', 'Stay low; waves come from the shoulders.', 'Raises the heart rate and trains the upper body.'],
   ['sandbaglunge', 'Sandbag lunge', 'Conditioning', 'wd', false, 'none', 90, 'Sandbag on the shoulders behind the neck.', 'Walk forward in lunges for the set distance.', 'Back knee touches lightly; torso upright.', 'Builds leg endurance under load.'],
+  ['jumprope', 'Jump rope', 'Mobility', 'time', false, 'none', 0, 'Rope handles at hip height, elbows close to the body.', 'Skip lightly on the balls of the feet at an easy rhythm.', 'Small jumps, quiet landings; wrists turn the rope.', 'Raises body temperature and wakes up the feet and calves.'],
+  ['easybike', 'Easy bike', 'Mobility', 'time', false, 'none', 0, 'Set the bike to a light resistance, seat at hip height.', 'Pedal at an easy pace, slowly building the rhythm.', 'You should be able to talk; this is a warm-up, not a workout.', 'Gently raises the heart rate and loosens the hips and knees.'],
+  ['legswing', 'Leg swings', 'Mobility', 'reps', true, 'none', 0, 'Stand side-on to a wall, one hand on it for balance.', 'Swing the outside leg forward and back, then side to side across the body.', 'Relaxed swing, growing range; the trunk stays tall.', 'Opens the hips dynamically before running and jumping.'],
+  ['wgs', 'World’s greatest stretch', 'Mobility', 'reps', true, 'none', 0, 'Step into a long lunge, both hands on the floor inside the front foot.', 'Drop the elbow towards the front ankle, then rotate and reach the arm to the ceiling.', 'Back knee off the floor; follow the hand with your eyes.', 'Opens hips, hamstrings and upper back in one movement.'],
+  ['hip9090', 'Hip 90/90 switches', 'Mobility', 'reps', false, 'none', 0, 'Sit with both knees bent at 90°, one leg in front, one to the side.', 'Rotate both knees to the other side without using the hands, then back.', 'Sit tall; move slowly through the hips.', 'Improves hip rotation, key for low stances and lunges.'],
+  ['thoracic', 'Thoracic rotation', 'Mobility', 'reps', true, 'none', 0, 'Kneel on all fours, one hand behind the head.', 'Rotate the elbow down towards the other hand, then open it up to the ceiling.', 'Hips stay still; the movement comes from the upper back.', 'Frees the upper back for rotation and overhead work.'],
+  ['pullapart', 'Band pull-apart', 'Mobility', 'reps', false, 'none', 0, 'Hold a light band at shoulder height, arms straight in front.', 'Pull the band apart until it touches the chest, then return slowly.', 'Shoulders down; squeeze the shoulder blades.', 'Activates the upper back and protects the shoulders.'],
+  ['anklewall', 'Ankle rocks (knee to wall)', 'Mobility', 'reps', true, 'none', 0, 'Face a wall in a half-kneeling stance, front foot a hand-width away.', 'Push the front knee towards the wall over the toes, then back.', 'Heel stays down the whole time.', 'Improves ankle mobility for squats, lunges and quick footwork.'],
+  ['bandwalk', 'Mini-band side walk', 'Mobility', 'reps', false, 'none', 0, 'Mini band just above the knees, quarter squat, feet hip-width.', 'Take small side steps, keeping tension on the band, then come back.', 'Knees push out; no bouncing.', 'Wakes up the glutes before leg work.'],
+  ['scappush', 'Scap push-up', 'Mobility', 'reps', false, 'none', 0, 'Push-up position with straight arms.', 'Let the chest sink between the shoulder blades, then push the floor away.', 'Arms stay straight; only the shoulder blades move.', 'Activates the muscles that keep the shoulders stable.'],
+  ['armcircle', 'Arm circles', 'Mobility', 'reps', false, 'none', 0, 'Stand tall, arms out to the sides.', 'Make circles forward, then backward, from small to large.', 'Relaxed shoulders; smooth circles.', 'Warms up the shoulder joint.'],
+  ['askip', 'A-skips', 'Mobility', 'reps', false, 'none', 0, 'Stand tall with a little space in front of you.', 'Skip forward, driving one knee up while the other foot taps the ground quickly.', 'Stay on the balls of the feet; arms match the legs.', 'Primes quick, springy footwork.'],
+  ['catcow', 'Cat-cow', 'Mobility', 'reps', false, 'none', 0, 'On all fours, hands under shoulders, knees under hips.', 'Round the back up, then let it sink while lifting the chest.', 'Move one vertebra at a time; breathe with the movement.', 'Loosens the whole spine.'],
+  ['couch', 'Couch stretch', 'Mobility', 'time', true, 'none', 0, 'Back knee on a cushion against a wall or bench, shin up the wall, front foot planted.', 'Squeeze the glute of the back leg and lift the chest until a stretch at the front of the hip.', 'No arching of the lower back.', 'Opens the hip flexors and quads after leg work.'],
+  ['pigeon', 'Pigeon stretch', 'Mobility', 'time', true, 'none', 0, 'Front shin across the body on the floor, back leg straight behind.', 'Lower the chest over the front leg and breathe.', 'Hips stay square to the floor.', 'Releases the glutes and outer hip.'],
+  ['hamstretch', 'Hamstring stretch', 'Mobility', 'time', true, 'none', 0, 'Heel on a low box or bench, leg straight, the other knee soft.', 'Hinge forward from the hips with a flat back until a stretch.', 'Long back; point the toes up.', 'Keeps the hamstrings supple after hinges and sprints.'],
+  ['doorpec', 'Doorway chest stretch', 'Mobility', 'time', false, 'none', 0, 'Forearms on a door frame, elbows at shoulder height.', 'Step through gently until a stretch across the chest.', 'Shoulders stay down; do not force.', 'Opens the chest and front shoulders.'],
+  ['deadhang', 'Dead hang', 'Mobility', 'time', false, 'none', 0, 'Hang from a bar with an overhand grip, feet off the floor.', 'Relax and let the body hang for the set time.', 'Breathe; let the shoulders open.', 'Decompresses the spine and opens the shoulders; builds grip.'],
+  ['foamroll', 'Foam roll', 'Mobility', 'time', false, 'none', 0, 'Sit or lie on a foam roller under the muscle to treat.', 'Roll slowly along the muscle, pausing on tight spots.', 'Slow and controlled; avoid joints and the lower back.', 'Helps the muscles relax after training.'],
   ['treadmill', 'Treadmill run', 'Conditioning', 'time', false, 'none', 60, 'Set the treadmill speed and incline.', 'Run at the chosen pace for the set time.', 'Relaxed shoulders; short, light steps.', 'Builds aerobic fitness.']
 ];
 LIBRARY.forEach(([id, name, cat, type, uni, equip, rest, setup, move, key, benefit]) => {
   if (!SEED_EXERCISES.some((e) => e.id === id)) SEED_EXERCISES.push({ id, name, cat, type, uni, equip, rest });
   if (typeof GUIDES !== 'undefined' && !GUIDES[id]) GUIDES[id] = { setup, move, key, benefit, frames: [] };
 });
+
+/* Warm-up (counts in the session %) and optional cool-down for the built-in plans */
+const COOL = 'Cool-down (optional)';
+const WARMUPS = {
+  gym1: { w: [{ ex: 'easybike', s: 1, t: 180 }, { ex: 'legswing', L: 1, R: 1, r: [10, 10] }, { ex: 'wgs', L: 1, R: 1, r: [5, 5] }, { ex: 'anklewall', L: 1, R: 1, r: [10, 10] }, { ex: 'bandwalk', s: 1, r: [12, 12] }],
+          c: [{ ex: 'couch', L: 1, R: 1, t: 45 }, { ex: 'pigeon', L: 1, R: 1, t: 45 }, { ex: 'foamroll', s: 1, t: 120 }] },
+  gym2: { w: [{ ex: 'jumprope', s: 1, t: 120 }, { ex: 'armcircle', s: 1, r: [10, 10] }, { ex: 'pullapart', s: 2, r: [15, 15] }, { ex: 'thoracic', L: 1, R: 1, r: [8, 8] }, { ex: 'scappush', s: 1, r: [10, 10] }],
+          c: [{ ex: 'deadhang', s: 2, t: 30 }, { ex: 'doorpec', s: 1, t: 45 }, { ex: 'catcow', s: 1, r: [8, 8] }] },
+  gym3: { w: [{ ex: 'jumprope', s: 1, t: 120 }, { ex: 'legswing', L: 1, R: 1, r: [10, 10] }, { ex: 'hip9090', s: 1, r: [8, 8] }, { ex: 'bandwalk', s: 1, r: [12, 12] }, { ex: 'askip', s: 2, r: [10, 10] }],
+          c: [{ ex: 'hamstretch', L: 1, R: 1, t: 45 }, { ex: 'couch', L: 1, R: 1, t: 45 }, { ex: 'foamroll', s: 1, t: 120 }] },
+  cond: { w: [{ ex: 'easybike', s: 1, t: 300 }], c: [{ ex: 'hamstretch', L: 1, R: 1, t: 45 }, { ex: 'couch', L: 1, R: 1, t: 45 }] },
+  outA: { w: [{ ex: 'legswing', L: 1, R: 1, r: [10, 10] }, { ex: 'wgs', L: 1, R: 1, r: [5, 5] }, { ex: 'anklewall', L: 1, R: 1, r: [10, 10] }], c: [{ ex: 'couch', L: 1, R: 1, t: 45 }, { ex: 'pigeon', L: 1, R: 1, t: 45 }] },
+  outB: { w: [{ ex: 'armcircle', s: 1, r: [10, 10] }, { ex: 'thoracic', L: 1, R: 1, r: [8, 8] }, { ex: 'scappush', s: 1, r: [10, 10] }], c: [{ ex: 'doorpec', s: 1, t: 45 }, { ex: 'catcow', s: 1, r: [8, 8] }] },
+  outC: { w: [{ ex: 'legswing', L: 1, R: 1, r: [10, 10] }, { ex: 'hip9090', s: 1, r: [8, 8] }, { ex: 'askip', s: 2, r: [10, 10] }], c: [{ ex: 'hamstretch', L: 1, R: 1, t: 45 }] }
+};
+/* adds the blocks to every cycle of the built-in sessions that do not have them yet; returns true if something changed */
+function addWarmups(plans) {
+  let changed = false;
+  plans.forEach((p) => { if (!['tt-season', 'away'].includes(p.id)) return; p.sessions.forEach((s) => {
+    const W = WARMUPS[s.id]; if (!W || !s.tpl) return;
+    Object.values(s.tpl).forEach((blocks) => {
+      if (!blocks.some(([b]) => b === 'Warm-up')) { blocks.unshift(['Warm-up', JSON.parse(JSON.stringify(W.w))]); changed = true; }
+      if (!blocks.some(([b]) => b === COOL)) { blocks.push([COOL, JSON.parse(JSON.stringify(W.c))]); changed = true; }
+    });
+    if (changed) p.upd = Date.now();
+  }); });
+  return changed;
+}
+addWarmups(SEED_PLANS);

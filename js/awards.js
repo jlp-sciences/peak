@@ -1,4 +1,4 @@
-/* Peak — goals, goal eras, weekly streak with jokers, and the 70 trophies.
+/* Peak — goals, goal eras, weekly streak with jokers, and the trophies.
    Everything is worked out from the logged data, so it is retroactive and needs no sync of its own.
    Only the goal eras (D.eras) are stored. Which unlocks were already shown is kept on this device only. */
 
@@ -109,12 +109,23 @@ function careerStats(ws) {
   s.full = counter(ws.filter((w) => w.pct >= 100).map((w) => w.date));
   let run = 0; s.flawless = best(ws.filter((w) => w.pct != null).map((w) => [w.date, (run = w.pct >= 100 ? run + 1 : 0)]));
   // records: a set that beats every earlier set of the same exercise and side
-  const bestSoFar = {}; const prs = [];
-  sets.forEach((x) => {
+  const isMob = (x) => exOf(x).cat === 'Mobility'; const work = sets.filter((x) => !isMob(x));
+  const bestSoFar = {}; const bestDate = {}; const prs = []; const first = {}; const glow = [];
+  const wOf = {}; ws.forEach((w, i) => { wOf[w.id] = { w, gap: i ? daysBetween(ws[i - 1].date, w.date) : 0 }; });
+  work.forEach((x) => {
     const ex = exOf(x); if (!ex.type || typeof METRICS === 'undefined') return; const m = primaryMetric(ex); const v = METRICS[m].f([x]); const k = x.exId + (x.side || '');
-    if (v > 0 && bestSoFar[k] != null && v > bestSoFar[k]) prs.push({ date: x.date, wid: x.wid, cat: ex.cat });
-    if (bestSoFar[k] == null || v > bestSoFar[k]) bestSoFar[k] = v;
+    if (v > 0 && bestSoFar[k] != null && v > bestSoFar[k]) prs.push({ date: x.date, wid: x.wid, cat: ex.cat, exId: x.exId, side: x.side, old: bestDate[k] });
+    if (bestSoFar[k] == null || v > bestSoFar[k]) { bestSoFar[k] = v; bestDate[k] = x.date; }
+    if (ex.type === 'wr' && v > 0) { const f = first[k]; if (!f) first[k] = { wid: x.wid, v }; else if (f.wid === x.wid) f.v = Math.max(f.v, v); else glow.push([x.date, Math.round(100 * (v / f.v - 1))]); }
   });
+  const seenPR = new Set(); s.recordEx = best(prs.map((p) => { seenPR.add(p.exId); return [p.date, seenPR.size]; }));
+  s.plate = best(work.filter((x) => exOf(x).equip === 'bar' && exOf(x).type === 'wr' && (x.r || 0) >= 1).map((x) => [x.date, x.w || 0]));
+  s.glow = best(glow);
+  s.plateau = counter(prs.filter((p) => p.old && daysBetween(p.old, p.date) >= 90).map((p) => p.date));
+  s.stillGot = counter([...new Set(prs.filter((p) => wOf[p.wid] && wOf[p.wid].gap >= 14).map((p) => p.wid))].map((id) => wOf[id].w.date));
+  s.twin = counter(Object.values(prs.reduce((o, p) => { if (p.side) { const k = p.wid + p.exId; (o[k] = o[k] || { date: p.date, s: new Set() }).s.add(p.side); } return o; }, {})).filter((x) => x.s.size === 2).map((x) => x.date));
+  s.sneaky = counter([...new Set(prs.filter((p) => wOf[p.wid] && wOf[p.wid].w.light).map((p) => p.wid))].map((id) => wOf[id].w.date));
+  Object.keys(CATS).forEach((c) => { s['cat_' + c] = counter(sets.filter((x) => exOf(x).cat === c).map((x) => x.date)); });
   s.records = counter(prs.map((p) => p.date));
   const perW = {}; s.prByW = perW; prs.forEach((p) => { perW[p.wid] = (perW[p.wid] || 0) + 1; s.triple = s.triple || []; s.triple.push([p.date, perW[p.wid]]); }); s.triple = best(s.triple || []);
   const cats = CORE_CATS(); const seenC = new Set(); s.allRound = best(prs.filter((p) => cats.includes(p.cat)).map((p) => { seenC.add(p.cat); return [p.date, seenC.size]; }));
@@ -130,10 +141,10 @@ function careerStats(ws) {
   s.wpull = best(sets.filter((x) => x.exId === 'pullups' && x.w && (x.r || 0) >= 1).map((x) => [x.date, x.w]));
   s.pushups = best(sets.filter((x) => x.exId === 'pushup').map((x) => [x.date, x.r || 0]));
   s.plank = best(ws.map((w) => { const L = w.sets.filter((x) => x.exId === 'sideplank' && x.side === 'L').map((x) => x.t || 0); const R = w.sets.filter((x) => x.exId === 'sideplank' && x.side === 'R').map((x) => x.t || 0); return L.length && R.length ? [w.date, Math.min(Math.max(...L), Math.max(...R))] : null; }).filter(Boolean));
-  s.sets = counter(sets.map((x) => x.date));
-  s.reps = cumul(ws.map((w) => [w.date, w.sets.reduce((n, x) => n + (x.r || 0), 0)]));
+  s.sets = counter(work.map((x) => x.date));
+  s.reps = cumul(ws.map((w) => [w.date, w.sets.reduce((n, x) => n + (isMob(x) ? 0 : (x.r || 0)), 0)]));
   s.hours = cumul(ws.map((w) => [w.date, w.late ? 0 : Math.min(240, Math.max(0, ((w.end || 0) - (w.start || 0)) / 60000)) / 60]));
-  s.left = counter(sets.filter((x) => x.side === 'L').map((x) => x.date));
+  s.left = counter(work.filter((x) => x.side === 'L').map((x) => x.date));
   s.balanced = counter(ws.filter((w) => { const u = (w.items || []).filter((it) => (D.exercises[it.exId] || {}).uni && it.rows && it.rows.length); return u.length && u.every((it) => it.rows.every((row) => row.done)); }).map((w) => w.date));
   const seenE = new Set(); s.explorer = best(sets.map((x) => { seenE.add(x.exId); return [x.date, seenE.size]; }));
   const wkCats = {}; s.spectrum = counter(Object.entries(sets.reduce((o, x) => { const k = mondayOf(x.date); (o[k] = o[k] || new Set()).add(exOf(x).cat); wkCats[k] = x.date; return o; }, {})).filter(([, set]) => cats.every((c) => set.has(c))).map(([k]) => wkCats[k]));
@@ -187,7 +198,7 @@ function careerStats(ws) {
   return s;
 }
 
-/* ---------- the 70 trophies ---------- */
+/* ---------- the trophies ---------- */
 const T_ = (id, fam, group, name, cond, stat, tiers, fmt) => ({ id, fam, group, name, cond, stat, tiers, fmt: fmt || ((v) => String(Math.round(v))) });
 const fT = (v) => (v < 10 ? v.toFixed(1) : Math.round(v).toLocaleString('en')) + ' t';
 const fX = (v) => '× ' + (Math.round(v * 100) / 100);
@@ -228,7 +239,23 @@ const TROPHIES = [
   T_('pushup-power', 'career', 'Strength', 'Push-up Power', 'Push-ups in one set', 'pushups', [20, 30, 40, 50]),
   T_('core-steel', 'career', 'Strength', 'Core of Steel', 'Side plank hold on each side', 'plank', [60, 90, 120], fS),
   T_('iron-grip', 'career', 'Strength', 'Iron Grip', 'Farmer carry 30 m, dumbbells totalling bodyweight ×', 'grip', [0.75, 1, 1.25], fX),
+  T_('record-collector', 'career', 'Records', 'Record Collector', 'Set a record on different exercises', 'recordEx', [5, 15, 25, 40]),
+  T_('plate-club', 'career', 'Records', 'Plate Club', 'Lift a barbell loaded with 1, 2 then 3 plates a side', 'plate', [60, 100, 140], (v) => Math.round(v) + ' kg'),
+  T_('glow-up', 'career', 'Records', 'Glow Up', 'Beat your first session on a weighted exercise by', 'glow', [25, 50, 100], (v) => '+' + Math.round(v) + ' %'),
+  T_('plateau-breaker', 'career', 'Records', 'Plateau Breaker', 'Beat a record that stood for 3 months or more', 'plateau', [1, 5, 15]),
+  T_('still-got-it', 'career', 'Records', 'Still Got It', 'Set a record in your first session after 2 weeks off', 'stillGot', [1]),
+  T_('twin-records', 'career', 'Records', 'Twin Records', 'Set a record on the left and on the right in the same session', 'twin', [1, 10, 25]),
   T_('on-a-roll', 'career', 'Strength', 'On a Roll', 'Set a personal record weeks in a row', 'roll', [2, 4, 8]),
+  T_('cat-legs', 'career', 'Categories', 'Never Skip Leg Day', 'Sets of leg exercises', 'cat_Legs', [100, 400, 1000, 2000, 4500]),
+  T_('cat-power', 'career', 'Categories', 'Explosive Personality', 'Sets of power exercises', 'cat_Power', [150, 400, 1200, 2500, 5000]),
+  T_('cat-back', 'career', 'Categories', 'Got Your Back', 'Sets of back exercises', 'cat_Back', [75, 200, 650, 1300, 2500]),
+  T_('cat-core', 'career', 'Categories', 'Core Values', 'Sets of core exercises', 'cat_Core', [75, 200, 650, 1300, 2500]),
+  T_('cat-shoulders', 'career', 'Categories', 'Boulder Shoulders', 'Sets of shoulder exercises', 'cat_Shoulders', [30, 100, 300, 550, 1100]),
+  T_('cat-chest', 'career', 'Categories', 'Chest Quest', 'Sets of chest exercises', 'cat_Chest', [30, 100, 300, 550, 1100]),
+  T_('cat-biceps', 'career', 'Categories', 'Gun Show', 'Sets of biceps and forearm exercises', 'cat_Biceps', [20, 50, 150, 300, 600]),
+  T_('cat-triceps', 'career', 'Categories', 'Tri Hard', 'Sets of triceps exercises', 'cat_Triceps', [20, 50, 150, 300, 600]),
+  T_('cat-cond', 'career', 'Categories', 'Sweat Equity', 'Sets of conditioning exercises', 'cat_Conditioning', [25, 70, 200, 400, 800]),
+  T_('cat-mobility', 'career', 'Categories', 'Stretch Goals', 'Warm-up, mobility and cool-down sets', 'cat_Mobility', [40, 125, 375, 750, 1500]),
   T_('set-collector', 'career', 'Volume', 'Set Collector', 'Sets completed', 'sets', [500, 1000, 2500, 5000, 10000]),
   T_('rep-machine', 'career', 'Volume', 'Rep Machine', 'Reps completed', 'reps', [5000, 10000, 25000, 50000, 100000]),
   T_('hours-in', 'career', 'Volume', 'Hours In', 'Hours of training', 'hours', [10, 50, 100, 250, 500], fH),
@@ -262,6 +289,7 @@ const TROPHIES = [
   T_('steady-hands', 'secret', 'Secret', 'Steady Hands', 'Finish 10 sessions at 100 % with every set rated Good', 'steady', [10]),
   T_('unbreakable', 'secret', 'Secret', 'Unbreakable', 'Reach a 52-week streak without using a joker', 'unbroken', [52]),
   T_('triple-crown', 'secret', 'Secret', 'Triple Crown', 'Set 3 personal records in one session', 'triple', [3]),
+  T_('sneaky-strong', 'secret', 'Secret', 'Sneaky Strong', 'Set a record during a light week', 'sneaky', [1]),
   T_('perfect-mirror', 'secret', 'Secret', 'Perfect Mirror', 'Match your left reps on the right in every set, 10 sessions in a row', 'mirror', [10]),
   T_('leap-day', 'secret', 'Secret', 'Leap Day', 'Train on 29 February', 'leap', [1]),
   T_('full-house', 'secret', 'Secret', 'Full House', 'Finish every session of your plan, optional ones included, in one week', 'house', [1]),
@@ -321,14 +349,14 @@ function goalsCardHTML() {
     <div class="goals-row">${ring(r.now.count, e.weekly, 76, 'This week')}${ring(r.monthNow.count, e.monthly, 76, MONTHS[new Date().getMonth()])}
       <div class="streak-box${r.streak ? ' lit' : ''}"><span class="flame">${FLAME}</span><span class="big-num">${r.streak}</span><span class="g-lab">week streak</span><span class="jokers" aria-label="${r.jokers} joker${r.jokers === 1 ? '' : 's'}">${Array.from({ length: 2 }, (_, i) => `<i class="${i < r.jokers ? 'on' : ''}">${FLAKE}</i>`).join('')}</span></div></div>
     ${e.runs ? `<p class="muted sm">Runs this week: ${r.now.runs}/${e.runs}</p>` : ''}
-    <button class="trophy-line" data-act="go" data-v="progress"><span class="cup">${CUP}</span><span><b>${unlocked}</b> of 70 trophies</span><span class="muted sm">See all ›</span></button></section>`;
+    <button class="trophy-line" data-act="go" data-v="progress"><span class="cup">${CUP}</span><span><b>${unlocked}</b> of ${TROPHIES.length} trophies</span><span class="muted sm">See all ›</span></button></section>`;
 }
 
 
 /* ---------- medal artwork: shape by metal, icon by family, Peak ribbon ---------- */
 const MED = { Bronze: ['#D9935E', '#A8673A', '#C47F4C'], Silver: ['#D3DAE3', '#8E99A8', '#BCC5D1'], Gold: ['#F5C95A', '#B8862A', '#E8B53F'], Platinum: ['#8FE6DC', '#3FA79B', '#74D3C8'], Diamond: ['#B9D0FF', '#5C7FD1', '#9CB9F7'], Locked: ['#4B5260', '#2F343D', '#3E444F'], Secret: ['#2A2F38', '#1B1F26', '#232830'], Ultimate: ['#F5C95A', '#B8862A', '#E8B53F'] };
-const FAM_IC = { flame: '<path d="M12 3c1 4 5 5.5 5 10a5 5 0 0 1-10 0c0-2.5 1.5-3.5 2-5 1 1.5 2 2 2 2s-.5-4 1-7z"/>', target: '<circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r="1"/>', cal: '<rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16M9 3v4M15 3v4M9 15l2 2 4-4"/>', clip: '<rect x="6" y="4" width="12" height="17" rx="2"/><path d="M9.5 3.5h5v3h-5zM9 11h6M9 15h4"/>', db: '<path d="M6 8v8M3 10v4M18 8v8M21 10v4M6 12h12"/>', stack: '<path d="M12 4l9 4-9 4-9-4zM3 12l9 4 9-4M3 16l9 4 9-4"/>', scale: '<path d="M12 4v16M8 20h8M5 7h14M5 7l-3 6h6zM19 7l-3 6h6z"/>', grid: '<rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/>', run: '<circle cx="15" cy="4.5" r="2"/><path d="M13 8l-3 5 4 3v5M10 13l-4 1M14 9l3 3h3"/>', ruler: '<rect x="3" y="8" width="18" height="8" rx="1.5"/><path d="M7 8v3M11 8v4M15 8v3M19 8v2"/>', heart: '<path d="M12 20s-7-4.5-7-10a4 4 0 0 1 7-2.5A4 4 0 0 1 19 10c0 5.5-7 10-7 10z"/>', mount: '<path d="M3 20l6-10 4 6 2-3 6 7zM15 10V4l4 1.5-4 1.5"/>', moon: '<path d="M20 14.5A8 8 0 1 1 9.5 4 6.5 6.5 0 0 0 20 14.5z"/>', lock: '<rect x="6" y="11" width="12" height="9" rx="2"/><path d="M9 11V8a3 3 0 0 1 6 0v3"/>', crown: '<path d="M4 17l1.5-9 4.5 4 2-6 2 6 4.5-4L20 17zM4 20h16"/>' };
-const GROUP_IC = { Goals: 'target', Consistency: 'cal', Plan: 'clip', Strength: 'db', Volume: 'stack', Balance: 'scale', Variety: 'grid', Cardio: 'run', 'Body and tests': 'ruler', Loyalty: 'heart', Expeditions: 'mount', Secret: 'moon', Ultimate: 'crown' };
+const FAM_IC = { bolt: '<path d="M13 3L5 13h6l-1 8 8-10h-6z"/>', arm: '<path d="M5 18c2-6 4-9 7-10 2-.7 3 .5 2.5 2l-1.5 2c2-1 4.5-.5 5.5 1.5 1 2.5-1 4.5-4 4.5H5z"/><path d="M9 11c.8-1.5 1.8-2.4 3-2.8"/>', flame: '<path d="M12 3c1 4 5 5.5 5 10a5 5 0 0 1-10 0c0-2.5 1.5-3.5 2-5 1 1.5 2 2 2 2s-.5-4 1-7z"/>', target: '<circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r="1"/>', cal: '<rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16M9 3v4M15 3v4M9 15l2 2 4-4"/>', clip: '<rect x="6" y="4" width="12" height="17" rx="2"/><path d="M9.5 3.5h5v3h-5zM9 11h6M9 15h4"/>', db: '<path d="M6 8v8M3 10v4M18 8v8M21 10v4M6 12h12"/>', stack: '<path d="M12 4l9 4-9 4-9-4zM3 12l9 4 9-4M3 16l9 4 9-4"/>', scale: '<path d="M12 4v16M8 20h8M5 7h14M5 7l-3 6h6zM19 7l-3 6h6z"/>', grid: '<rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/>', run: '<circle cx="15" cy="4.5" r="2"/><path d="M13 8l-3 5 4 3v5M10 13l-4 1M14 9l3 3h3"/>', ruler: '<rect x="3" y="8" width="18" height="8" rx="1.5"/><path d="M7 8v3M11 8v4M15 8v3M19 8v2"/>', heart: '<path d="M12 20s-7-4.5-7-10a4 4 0 0 1 7-2.5A4 4 0 0 1 19 10c0 5.5-7 10-7 10z"/>', mount: '<path d="M3 20l6-10 4 6 2-3 6 7zM15 10V4l4 1.5-4 1.5"/>', moon: '<path d="M20 14.5A8 8 0 1 1 9.5 4 6.5 6.5 0 0 0 20 14.5z"/>', lock: '<rect x="6" y="11" width="12" height="9" rx="2"/><path d="M9 11V8a3 3 0 0 1 6 0v3"/>', crown: '<path d="M4 17l1.5-9 4.5 4 2-6 2 6 4.5-4L20 17zM4 20h16"/>' };
+const GROUP_IC = { Records: 'bolt', Categories: 'arm', Goals: 'target', Consistency: 'cal', Plan: 'clip', Strength: 'db', Volume: 'stack', Balance: 'scale', Variety: 'grid', Cardio: 'run', 'Body and tests': 'ruler', Loyalty: 'heart', Expeditions: 'mount', Secret: 'moon', Ultimate: 'crown' };
 const iconOf = (t) => (['hot-streak', 'unbreakable', 'comeback-streak', 'joker'].includes(t.id) ? 'flame' : GROUP_IC[t.group] || 'target');
 function medalSVG(metal, icon, S) {
   const [f, d, inner] = MED[metal]; const ink = metal === 'Secret' ? '#9AA3B2' : metal === 'Locked' ? '#8A93A3' : '#3A2A12';
@@ -379,7 +407,7 @@ function progressView() {
         <p class="muted sm">A joker is earned every 4 weeks at goal (2 max). It saves your streak when a week is missed.</p></section>
     </div><div class="col">
       ${typeof climbCardHTML === 'function' ? climbCardHTML(true) : ''}
-      <section class="card"><div class="row between"><span class="eyebrow">TROPHIES · ${unlocked}/70</span><button class="link" data-act="pr-tab" data-v="trophies">All ›</button></div>
+      <section class="card"><div class="row between"><span class="eyebrow">TROPHIES · ${unlocked}/${TROPHIES.length}</span><button class="link" data-act="pr-tab" data-v="trophies">All ›</button></div>
         ${recent.length ? `<div class="recent-tro">${recent.map(({ x, d, lvl }) => `<button class="rt" data-act="tr-open" data-v="${x.t.id}">${medalSVG(x.t.fam === 'ultimate' ? 'Ultimate' : metalOf(lvl - 1, x.max), x.t.fam === 'ultimate' ? 'crown' : iconOf(x.t), 44)}<b>${esc(x.t.name)}</b><small>${shortDate(d)}</small></button>`).join('')}</div>` : '<p class="muted sm">Finish a session to unlock your first trophy.</p>'}</section>
       ${trophyCard(A.list.find((x) => x.t.fam === 'ultimate'))}
     </div></div>`;
@@ -387,7 +415,7 @@ function progressView() {
     const tab = UI.trTab || 'goal'; const fams = [['goal', 'Goals'], ['career', 'Career'], ['secret', 'Secret']];
     const list = A.list.filter((x) => x.t.fam === tab); const groups = {}; list.forEach((x) => { (groups[x.t.group] = groups[x.t.group] || []).push(x); });
     body = `<div class="seg-ctl">${fams.map(([k, l]) => `<button class="${tab === k ? 'on' : ''}" aria-pressed="${tab === k}" data-act="tr-tab" data-v="${k}">${l} <small>${A.list.filter((x) => x.t.fam === k && x.level > 0).length}/${A.list.filter((x) => x.t.fam === k).length}</small></button>`).join('')}</div>
-      <p class="muted sm">${unlocked} of 70 trophies unlocked.</p>
+      <p class="muted sm">${unlocked} of ${TROPHIES.length} trophies unlocked.</p>
       ${Object.entries(groups).map(([g, xs]) => `${tab === 'career' ? `<span class="eyebrow">${esc(g.toUpperCase())}</span>` : ''}<div class="trophies">${xs.map((x) => trophyCard(x)).join('')}</div>`).join('')}
       ${trophyCard(A.list.find((x) => x.t.fam === 'ultimate'))}`;
   } else if (seg === 'gear') {
@@ -449,7 +477,7 @@ const SECRET_HINTS = {
   'seven-days': 'A full week, without a single day off.', 'plan-b': 'When the machine is taken, adapt.',
   'steady-hands': 'Not too easy, not too hard — again and again.', 'unbreakable': 'A whole year, no safety net.',
   'triple-crown': 'Some days, everything goes up at once.', 'perfect-mirror': 'Left and right, perfectly balanced.',
-  'leap-day': 'A day that only comes every four years.', 'full-house': 'Every box ticked, even the optional ones.'
+  'leap-day': 'A day that only comes every four years.', 'sneaky-strong': 'Who said easy weeks are easy?', 'full-house': 'Every box ticked, even the optional ones.'
 };
 function trophySheet() {
   const A = awards(); const x = A.list.find((y) => y.t.id === UI.trId); if (!x) return '';

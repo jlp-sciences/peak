@@ -1,7 +1,7 @@
 /* Peak — app logic (vanilla JS, no build step). */
 'use strict';
 
-const APP_VERSION = '1.3.0';
+const APP_VERSION = '1.4.0';
 const STORE_KEY = 'peak.v1';
 
 /* ---------- helpers ---------- */
@@ -53,6 +53,7 @@ function load() {
   // add seed exercises / plans that appeared in a newer version, without touching user edits
   SEED_EXERCISES.forEach((e) => { if (!D.exercises[e.id]) D.exercises[e.id] = JSON.parse(JSON.stringify(e)); });
   SEED_PLANS.forEach((p) => { if (!D.plans[p.id] && !(D.settings.removedPlans || []).includes(p.id)) { D.plans[p.id] = JSON.parse(JSON.stringify(p)); D.progress[p.id] = { cycle: 0, week: 1, done: {} }; } });
+  if (!D.settings.warmupV1) { if (typeof addWarmups === 'function') addWarmups(Object.values(D.plans)); D.settings.warmupV1 = true; D.settings.upd = Date.now(); }
   if (!D.body) D.body = { measures: [], tests: [] };
   if (!D.planned) D.planned = {};
   if (D.settings.goalWeight == null) D.settings.goalWeight = 76;
@@ -222,7 +223,7 @@ function itemCounts(w, item) {
 }
 function sessionPct(w) {
   let done = 0, tot = 0;
-  w.items.forEach((it) => { const r = ensureRows(w, it); tot += r.length; done += r.filter((x) => x.done).length; });
+  w.items.forEach((it) => { if (typeof COOL !== 'undefined' && it.block === COOL) return; const r = ensureRows(w, it); tot += r.length; done += r.filter((x) => x.done).length; });
   return { pct: tot ? Math.min(100, Math.round(100 * done / tot)) : 0, done, tot };
 }
 function itemDone(w, item) { const rows = ensureRows(w, item); return rows.length > 0 && rows.every((r) => r.done); }
