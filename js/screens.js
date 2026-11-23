@@ -143,7 +143,7 @@ function exDetail(ex) {
   const tabs = (hasGuide(ex.id) ? [['guide', 'Guide']] : []).concat([['history', 'History'], ['graph', 'Graph'], ['records', 'Records']]);
   if (!UI.exTab || (UI.exTab === 'guide' && !hasGuide(ex.id))) UI.exTab = 'history';
   let body = '';
-  const fmtSet = (s) => [s.w != null ? (ex.type === 'bwkg' ? (s.w ? 'BW+' + fmtW(s.w) : 'BW') : fmtW(s.w)) : null, s.r != null ? s.r : null, s.t != null ? fmtT(s.t) : null, s.d != null ? s.d + ' m' : null].filter((x) => x != null).join(' × ');
+  const fmtSet = (s) => [s.w != null ? (ex.type === 'bwkg' ? (s.w ? 'BW+' + fmtW(s.w) : 'BW') : dbEach(ex) ? '2×' + fmtW(dispW(ex, s.w)) : fmtW(s.w)) : null, s.r != null ? s.r : null, s.t != null ? fmtT(s.t) : null, s.d != null ? s.d + ' m' : null].filter((x) => x != null).join(' × ');
   if (UI.exTab === 'guide') {
     body = guideHTML(ex.id);
   } else if (UI.exTab === 'history') {

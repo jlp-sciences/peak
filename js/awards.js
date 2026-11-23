@@ -138,8 +138,8 @@ function careerStats(ws) {
   s.tonnage = cumul(ws.map((w) => [w.date, w.sets.reduce((n, x) => n + kg(x), 0) / 1000]));
   s.bigDay = best(ws.map((w) => [w.date, w.sets.reduce((n, x) => n + kg(x), 0) / 1000]));
   const ratio = (id, minR, k, mult) => best(sets.filter((x) => x.exId === id && (x.r || 0) >= minR && x.w).map((x) => { const bw = bwAt(x.date); return bw ? [x.date, Math.round(100 * (mult || 1) * x.w / bw) / 100] : null; }).filter(Boolean));
-  s.squat = ratio('squat', 1); s.dead = ratio('deadlift', 1); s.oneLeg = ratio('bulgarian', 6, null, 2);
-  s.grip = best(sets.filter((x) => x.exId === 'farmer' && (x.d || 0) >= 30 && x.w).map((x) => { const bw = bwAt(x.date); return bw ? [x.date, Math.round(200 * x.w / bw) / 100] : null; }).filter(Boolean));
+  s.squat = ratio('squat', 1); s.dead = ratio('deadlift', 1); s.oneLeg = best(ws.map((w) => { const bw = bwAt(w.date); if (!bw) return null; const top = (sd) => Math.max(0, ...w.sets.filter((x) => x.exId === 'bulgarian' && x.side === sd && (x.r || 0) >= 6 && x.w).map((x) => x.w)); const m = Math.min(top('L'), top('R')); return m ? [w.date, Math.round(100 * m / bw) / 100] : null; }).filter(Boolean));
+  s.grip = best(sets.filter((x) => x.exId === 'farmer' && (x.d || 0) >= 30 && x.w).map((x) => { const bw = bwAt(x.date); return bw ? [x.date, Math.round(100 * x.w / bw) / 100] : null; }).filter(Boolean));
   s.pullups = best(sets.filter((x) => x.exId === 'pullups' && !x.w).map((x) => [x.date, x.r || 0]));
   s.wpull = best(sets.filter((x) => x.exId === 'pullups' && x.w && (x.r || 0) >= 1).map((x) => [x.date, x.w]));
   s.pushups = best(sets.filter((x) => x.exId === 'pushup').map((x) => [x.date, x.r || 0]));
@@ -238,7 +238,7 @@ const TROPHIES = [
   T_('deadlift-std', 'career', 'Strength', 'Deadlift Standard', 'Deadlift one rep at bodyweight ×', 'dead', [1.5, 1.75, 2], fX),
   T_('pullup-power', 'career', 'Strength', 'Pull-up Power', 'Strict pull-ups in one set', 'pullups', [5, 10, 15, 20]),
   T_('weighted-pullup', 'career', 'Strength', 'Weighted Pull-up', 'One pull-up with added weight (kg)', 'wpull', [10, 20, 30], (v) => '+' + v + ' kg'),
-  T_('one-leg', 'career', 'Strength', 'One Leg Strong', 'Bulgarian split squat, 6 reps, dumbbells totalling bodyweight ×', 'oneLeg', [0.5, 0.75, 1], fX),
+  T_('one-leg', 'career', 'Strength', 'One Leg Strong', 'Bulgarian split squat, 6 reps on the left and on the right, dumbbells totalling bodyweight ×', 'oneLeg', [0.4, 0.6, 0.8, 1, 1.2], fX),
   T_('pushup-power', 'career', 'Strength', 'Push-up Power', 'Push-ups in one set', 'pushups', [20, 30, 40, 50]),
   T_('core-steel', 'career', 'Strength', 'Core of Steel', 'Side plank hold on each side', 'plank', [60, 90, 120], fS),
   T_('iron-grip', 'career', 'Strength', 'Iron Grip', 'Farmer carry 30 m, dumbbells totalling bodyweight ×', 'grip', [0.75, 1, 1.25], fX),
@@ -521,7 +521,7 @@ function tipFor(x, A) {
     case 'on-a-roll': return 'Set at least one record every week — any exercise, any side counts.';
     case 'first-record': case 'record-breaker': return paced('records') || 'Beat your last best on any exercise: one more rep at the same weight counts.';
     case 'squat-std': case 'deadlift-std': return bw ? `At ${bw} kg body weight: one rep at ${kg(x.next * bw)} kg (best so far ${t.fmt(x.value)}).` : 'Log your body weight in Body to see the weight to lift.';
-    case 'one-leg': return bw ? `At ${bw} kg: 6 reps per leg with two ${kg(x.next * bw / 2)} kg dumbbells.` : 'Log your body weight in Body to see the dumbbells to use.';
+    case 'one-leg': return bw ? `At ${bw} kg: 6 reps on each leg with ${kg(x.next * bw)} kg in total (two ${kg(x.next * bw / 2)} kg dumbbells).` : 'Log your body weight in Body to see the dumbbells to use.';
     case 'iron-grip': return bw ? `At ${bw} kg: 30 m with two ${kg(x.next * bw / 2)} kg dumbbells.` : 'Log your body weight in Body to see the dumbbells to use.';
     case 'pullup-power': return `Best ${x.value} strict reps: ${rem} to go. Add one rep every week or two; on weighted weeks, finish with a body-weight max set.`;
     case 'weighted-pullup': return `Best +${x.value} kg: add 2 kg once you reach 4 × 8 clean, as in your plan.`;

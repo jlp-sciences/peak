@@ -140,3 +140,7 @@ function addWarmups(plans, redo) {
   return changed;
 }
 addWarmups(SEED_PLANS);
+
+/* exercises done with two dumbbells (or two kettlebells): the weight can be logged as the total or per dumbbell.
+   Inside the app the weight is always the total of both. */
+const PAIR_IDS = new Set(['bulgarian', 'farmer', 'walklunge', 'revlunge', 'splitsquat', 'stepup', 'dbrdl', 'dbbench', 'inclinedb', 'dbshoulder', 'arnold', 'latraise', 'frontraise', 'reardelt', 'curl', 'inclinecurl', 'hammer', 'dbfly', 'shrug', 'wristcurl', 'revwrist', 'sandbaglunge']);

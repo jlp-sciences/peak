@@ -1,7 +1,7 @@
 /* Peak — app logic (vanilla JS, no build step). */
 'use strict';
 
-const APP_VERSION = '1.7.2';
+const APP_VERSION = '1.8.0';
 const STORE_KEY = 'peak.v1';
 
 /* ---------- helpers ---------- */
@@ -33,6 +33,7 @@ const ICON = {
   down: '<path d="M6 9l6 6 6-6"/>',
   chev: '<path d="M9 6l6 6-6 6"/>',
   edit: '<path d="M4 20h4L19 9l-4-4L4 16z"/>',
+  swap: '<path d="M7 4L3 8l4 4M3 8h14M17 20l4-4-4-4M21 16H7"/>',
   trash: '<path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M10 11v6M14 11v6"/>',
   progress: '<path d="M3 20l6-10 4 6 2-3 6 7zM15 10V4l4 1.5-4 1.5"/>'
 };
@@ -167,8 +168,9 @@ function suggestion(exId, presc, exceptId) {
     const TABLE = { top: { easy: 1, good: 1, hard: 0, none: 1 }, in: { easy: 1, good: 0, hard: 0, none: 0 }, below: { easy: 0, good: -1, hard: -1, none: -1 }, none: { easy: 1, good: 0, hard: 0, none: 0 } };
     const step = TABLE[zone][feel || 'none'];
     const nw = roundTo(Math.max(0, w + step * inc), ex.equip);
-    const lastTxt = 'Last time ' + (ex.type === 'bwkg' ? (w ? 'BW+' + fmtW(w) : 'BW') : fmtW(w) + ' kg') + (top.some((r) => r) ? ' × ' + repsTxt : '') + (zone === 'top' ? ' (top of range)' : zone === 'below' ? ' (below range)' : '') + (feel ? ' · felt ' + feel : '');
-    const action = step > 0 ? '+' + fmtW(inc) + ' kg' : step < 0 ? '−' + fmtW(inc) + ' kg' : 'same weight' + ((zone === 'in' || zone === 'none') && feel !== 'hard' ? ', +1 rep' : '');
+    const lastTxt = 'Last time ' + (ex.type === 'bwkg' ? (w ? 'BW+' + fmtW(w) : 'BW') : wTxt(ex, w)) + (top.some((r) => r) ? ' × ' + repsTxt : '') + (zone === 'top' ? ' (top of range)' : zone === 'below' ? ' (below range)' : '') + (feel ? ' · felt ' + feel : '');
+    const incTxt = dbEach(ex) ? fmtW(inc / 2) + ' kg each' : fmtW(inc) + ' kg';
+    const action = step > 0 ? '+' + incTxt : step < 0 ? '−' + incTxt : 'same weight' + ((zone === 'in' || zone === 'none') && feel !== 'hard' ? ', +1 rep' : '');
     return { w: nw, why: lastTxt + ' → ' + action };
   }
   if (ex.ref && ex.ref.w != null) {
@@ -229,6 +231,10 @@ function sessionPct(w) {
   w.items.forEach((it) => { if (/\(optional\)$/.test(it.block || '')) return; const r = ensureRows(w, it); tot += r.length; done += r.filter((x) => x.done).length; });
   return { pct: tot ? Math.min(100, Math.round(100 * done / tot)) : 0, done, tot };
 }
+const isPair = (ex) => !!ex && ((typeof PAIR_IDS !== 'undefined' && PAIR_IDS.has(ex.id)) || ex.pair === true);
+const dbEach = (ex) => isPair(ex) && ex.dbm === 'each';
+const dispW = (ex, w) => (dbEach(ex) ? Math.round((w || 0) * 5) / 10 : w); // shown value (per dumbbell when chosen)
+const wTxt = (ex, w) => (dbEach(ex) ? '2 × ' + fmtW(Math.round((w || 0) * 5) / 10) + ' kg' : fmtW(w) + ' kg');
 function ringHTML(c, col, d) {
   const R = 9.5, C = 2 * Math.PI * R, f = c.total ? c.n / c.total : 0;
   return `<span class="ring${d ? ' full' : ''}" aria-label="${c.n} of ${c.total} sets"><svg viewBox="0 0 26 26" width="26" height="26"><circle cx="13" cy="13" r="${R}" fill="none" stroke="var(--line2)" stroke-width="2.5"/>`
@@ -420,7 +426,7 @@ function toast(msg) {
 }
 
 /* ---------- views ---------- */
-const navOn = (k) => UI.view === k || (k === 'exercises' && UI.view === 'exercise') || (k === 'today' && UI.view === 'account') || (k === 'calendar' && UI.view === 'workout');
+const navOn = (k) => UI.view === k || (k === 'exercises' && UI.view === 'exercise') || (k === 'today' && ['account', 'rpreview', 'routines', 'routine-edit'].includes(UI.view)) || (k === 'calendar' && UI.view === 'workout');
 function navHTML() {
   const items = [['today', 'Today'], ['calendar', 'Calendar'], ['progress', 'Progress'], ['exercises', 'Exercises'], ['analysis', 'Analysis'], ['body', 'Body']];
   return `<nav class="nav" aria-label="Main"><div class="nav-logo">${LOGO(34)}</div>${items.map(([k, l]) => `<button class="nav-btn${navOn(k) ? ' on' : ''}" data-act="go" data-v="${k}" ${navOn(k) ? 'aria-current="page"' : ''}>${svg(k, 24)}<span>${l}</span></button>`).join('')}</nav>`;
@@ -497,7 +503,7 @@ function entryHTML(w, item) {
       <button class="st-btn" aria-label="Increase ${label}" data-act="step" data-k="${key}" data-d="${incr}">+</button></div></div>`;
   let fields = '';
   if (row) {
-    if (['wr', 'wd', 'wt'].includes(ex.type)) fields += step('Weight', 'w', fmtW(row.w), 'kg', inc, inc);
+    if (['wr', 'wd', 'wt'].includes(ex.type)) fields += step(isPair(ex) ? (dbEach(ex) ? 'Each dumbbell' : 'Both dumbbells') : 'Weight', 'w', fmtW(dispW(ex, row.w)), isPair(ex) ? (dbEach(ex) ? 'kg each' : 'kg total') : 'kg', inc, inc);
     if (ex.type === 'bwkg') fields += step('Added', 'w', fmtW(row.w), row.w ? 'kg' : 'kg · BW', inc, inc);
     if (['wr', 'bwkg', 'reps'].includes(ex.type)) fields += step('Reps', 'r', row.r, 'reps', 1, 1);
     if (['time', 'wt'].includes(ex.type)) { const st = row.t >= 300 ? 60 : 5; fields += step('Time', 't', row.t, 's', st, st); }
@@ -512,10 +518,11 @@ function entryHTML(w, item) {
   return `<div class="entry">
     ${fbSet ? `<div class="feel"><span class="muted sm">Set ${fbIdx}${fbSet.side ? ' ' + fbSet.side : ''} felt</span>
       ${['easy', 'good', 'hard'].map((f) => `<button class="feel-btn${fbSet.feel === f ? ' on' : ''}" aria-pressed="${fbSet.feel === f}" data-act="feel" data-v="${f}">${f[0].toUpperCase() + f.slice(1)}</button>`).join('')}</div>` : ''}
-    ${sug ? `<div class="sugg"><div class="row between"><span class="eyebrow">SUGGESTED</span><span class="sugg-w">${ex.type === 'bwkg' ? (sug.w ? 'BW +' + fmtW(sug.w) + ' kg' : 'BW') : fmtW(sug.w) + ' kg'}${p.rmin != null ? ' × ' + (p.rmin === p.rmax ? p.rmin : p.rmin + '–' + p.rmax) : ''}</span></div><span class="soft sm">${esc(sug.why)}</span></div>` : ''}
+    ${sug ? `<div class="sugg"><div class="row between"><span class="eyebrow">SUGGESTED</span><span class="sugg-w">${ex.type === 'bwkg' ? (sug.w ? 'BW +' + fmtW(sug.w) + ' kg' : 'BW') : wTxt(ex, sug.w)}${p.rmin != null ? ' × ' + (p.rmin === p.rmax ? p.rmin : p.rmin + '–' + p.rmax) : ''}</span></div><span class="soft sm">${esc(sug.why)}</span></div>` : ''}
     ${ex.ref ? `<p class="ref">FitNotes ref · ${esc(ex.ref.date)} · ${esc(ex.ref.text)}</p>` : ''}
     ${row ? `<span class="eyebrow">EDITING SET ${idx}${row.side ? ' · ' + row.side : ''}${row.done ? ' · DONE' : ''}</span>` : ''}
     <div class="fields">${fields}</div>
+    ${row && isPair(ex) && ['wr', 'wd', 'wt'].includes(ex.type) ? `<div class="seg-ctl dbm" role="group" aria-label="How the weight is logged">${[['total', 'Total of both'], ['each', 'Each dumbbell']].map(([v, l]) => `<button class="${(ex.dbm || 'total') === v ? 'on' : ''}" aria-pressed="${(ex.dbm || 'total') === v}" data-act="dbm" data-v="${v}">${l}</button>`).join('')}</div>` : ''}
     ${ex.uni && row ? `<div class="sides" role="group" aria-label="Side of this set">
       <button class="side L${row.side === 'L' ? ' on' : ''}" aria-pressed="${row.side === 'L'}" data-act="side" data-v="L">L · Left</button>
       <button class="side R${row.side === 'R' ? ' on' : ''}" aria-pressed="${row.side === 'R'}" data-act="side" data-v="R">R · Right</button></div>
@@ -529,7 +536,7 @@ function setRowsHTML(w, item) {
   const counter = { L: 0, R: 0, x: 0 };
   return rows.map((r) => {
     const k = r.side || 'x'; counter[k] += 1;
-    const val = [['wr', 'wd', 'wt'].includes(ex.type) ? fmtW(r.w) + ' kg' : ex.type === 'bwkg' ? (r.w ? 'BW+' + fmtW(r.w) : 'BW') : '', ['wr', 'bwkg', 'reps'].includes(ex.type) ? r.r + ' reps' : '', ['time', 'wt'].includes(ex.type) ? fmtT(r.t) : '', ex.type === 'wd' ? r.d + ' m' : ''].filter(Boolean).join(' × ');
+    const val = [['wr', 'wd', 'wt'].includes(ex.type) ? wTxt(ex, r.w) : ex.type === 'bwkg' ? (r.w ? 'BW+' + fmtW(r.w) : 'BW') : '', ['wr', 'bwkg', 'reps'].includes(ex.type) ? r.r + ' reps' : '', ['time', 'wt'].includes(ex.type) ? fmtT(r.t) : '', ex.type === 'wd' ? r.d + ' m' : ''].filter(Boolean).join(' × ');
     const s = r.done && w.sets.find((x) => x.id === r.id);
     const label = 'Set ' + counter[k] + (r.side ? ' ' + (r.side === 'L' ? 'left' : 'right') : '');
     return `<div class="set-row${r.done ? ' done' : ''}${sel && sel.id === r.id ? ' sel' : ''}">
@@ -657,6 +664,7 @@ function sheetHTML() {
       <p class="muted sm">Each plan keeps its place when you switch.</p>`;
   } else if (UI.sheet === 'more') {
     body = `<h2>Settings & data</h2>
+      ${typeof routinesView === 'function' ? `<button class="list-btn" data-act="go" data-v="routines"><span><b>Routines</b><small>Change the routines for good</small></span>${svg('chev', 18, 2)}</button>` : ''}
       ${typeof avatarHTML === 'function' ? `<button class="list-btn acct-row" data-act="go" data-v="account">${avatarHTML(36)}<span><b>Account</b><small>${D.sync && D.sync.profile ? esc(D.sync.profile.email) : 'Sign in with Google'}</small></span></button>` : ''}
       <label class="toggle"><span><b>Sound at end of rest</b></span><input type="checkbox" data-set="sound" ${D.settings.sound ? 'checked' : ''}></label>
       <label class="toggle"><span><b>Vibrate at end of rest</b></span><input type="checkbox" data-set="vibrate" ${D.settings.vibrate ? 'checked' : ''}></label>
@@ -750,10 +758,11 @@ document.addEventListener('click', (ev) => {
       const drop = () => { item.rows = rows.filter((x) => x.id !== id); w.sets = w.sets.filter((s) => s.id !== id); if (UI.selRow === id) UI.selRow = null; if (UI.lastSet === id) UI.lastSet = null; save(); UI.sheet = null; render(); };
       if (r && r.done) ask('Delete this set?', 'Delete', drop); else drop();
     } break;
+    case 'dbm': if (w) { const ex = D.exercises[w.items[w.cur].exId]; ex.dbm = b.dataset.v === 'each' ? 'each' : 'total'; ex.upd = Date.now(); save(); render(); } break;
     case 'step': if (w) {
       const item = w.items[w.cur]; const ex = D.exercises[item.exId]; const row = selectedRow(w, item); const k = b.dataset.k;
-      let v = (Number(row[k]) || 0) + Number(b.dataset.d);
-      if (k === 'w') v = roundTo(Math.max(0, v), ex.equip);
+      let v = (Number(row[k]) || 0) + Number(b.dataset.d) * (k === 'w' && dbEach(ex) ? 2 : 1);
+      if (k === 'w') v = dbEach(ex) ? Math.max(0, Math.round(v * 2) / 2) : roundTo(Math.max(0, v), ex.equip);
       editRow(w, item, k, Math.max(0, Math.round(v * 10) / 10));
     } break;
     case 'side': if (w) { const item = w.items[w.cur]; const row = selectedRow(w, item); if (row) { row.side = b.dataset.v; row.touched = true; if (row.done) writeSet(w, D.exercises[item.exId], row); save(); render(); } } break;
@@ -800,7 +809,7 @@ document.addEventListener('click', (ev) => {
 });
 document.addEventListener('change', (ev) => {
   const t = ev.target;
-  if (t.dataset && t.dataset.in && t.dataset.in !== 'pq' && t.dataset.in !== 'exq') { const w = active(); if (w && w.items[w.cur]) editRow(w, w.items[w.cur], t.dataset.in, Math.max(0, Number(String(t.value).replace(',', '.')) || 0)); }
+  if (t.dataset && t.dataset.in && t.dataset.in !== 'pq' && t.dataset.in !== 'exq') { const w = active(); if (w && w.items[w.cur]) { const v = Math.max(0, Number(String(t.value).replace(',', '.')) || 0); editRow(w, w.items[w.cur], t.dataset.in, t.dataset.in === 'w' && dbEach(D.exercises[w.items[w.cur].exId]) ? v * 2 : v); } }
   if (t.dataset && t.dataset.set) { D.settings[t.dataset.set] = t.checked; save(); }
 });
 document.addEventListener('input', (ev) => {

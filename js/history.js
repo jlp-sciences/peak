@@ -15,7 +15,7 @@ function recalcPct(w) {
   if (!tot) return; w.pct = Math.min(100, Math.round(100 * done / tot));
   if (w.pct >= 100) { delete w.reason; delete w.reasonNote; }
 }
-const fmtSetH = (ex, s) => [s.w != null && ex.type !== 'reps' && ex.type !== 'time' ? (ex.type === 'bwkg' ? (s.w ? 'BW+' + fmtW(s.w) : 'BW') : fmtW(s.w) + ' kg') : null, s.r != null ? s.r + ' reps' : null, s.t != null ? fmtT(s.t) : null, s.d != null ? s.d + ' m' : null].filter(Boolean).join(' × ');
+const fmtSetH = (ex, s) => [s.w != null && ex.type !== 'reps' && ex.type !== 'time' ? (ex.type === 'bwkg' ? (s.w ? 'BW+' + fmtW(s.w) : 'BW') : wTxt(ex, s.w)) : null, s.r != null ? s.r + ' reps' : null, s.t != null ? fmtT(s.t) : null, s.d != null ? s.d + ' m' : null].filter(Boolean).join(' × ');
 const durOf = (w) => (w.late ? '' : Math.max(1, Math.round(((w.end || 0) - (w.start || 0)) / 60000)) + ' min');
 
 /* ---------- list ---------- */
@@ -59,7 +59,7 @@ function setEditSheet() {
   const ex = D.exercises[s.exId] || { type: 'wr', uni: false, name: s.exId };
   const f = (k, label, v) => `<label class="field">${label}<input id="hs-${k}" type="number" inputmode="decimal" value="${v == null ? '' : v}"></label>`;
   return `<h2>${esc(ex.name)}</h2>
-    <div class="pe-grid">${['wr', 'wd', 'wt', 'bwkg'].includes(ex.type) ? f('w', ex.type === 'bwkg' ? 'Added weight (kg)' : 'Weight (kg)', s.w) : ''}${['wr', 'bwkg', 'reps'].includes(ex.type) ? f('r', 'Reps', s.r) : ''}${['time', 'wt'].includes(ex.type) ? f('t', 'Time (s)', s.t) : ''}${ex.type === 'wd' ? f('d', 'Distance (m)', s.d) : ''}</div>
+    <div class="pe-grid">${['wr', 'wd', 'wt', 'bwkg'].includes(ex.type) ? f('w', ex.type === 'bwkg' ? 'Added weight (kg)' : isPair(ex) ? (dbEach(ex) ? 'Each dumbbell (kg)' : 'Both dumbbells (kg)') : 'Weight (kg)', s.w != null ? dispW(ex, s.w) : null) : ''}${['wr', 'bwkg', 'reps'].includes(ex.type) ? f('r', 'Reps', s.r) : ''}${['time', 'wt'].includes(ex.type) ? f('t', 'Time (s)', s.t) : ''}${ex.type === 'wd' ? f('d', 'Distance (m)', s.d) : ''}</div>
     ${ex.uni ? `<div class="sides" role="group" aria-label="Side"><button class="side L${s.side === 'L' ? ' on' : ''}" data-act="hs-side" data-v="L">L · Left</button><button class="side R${s.side === 'R' ? ' on' : ''}" data-act="hs-side" data-v="R">R · Right</button></div>` : ''}
     <label class="field">Set note<textarea id="hs-note" rows="2" placeholder="Optional">${esc(s.note || '')}</textarea></label>
     <button class="btn primary big" data-act="hs-save">Save set</button><button class="btn outline danger-t" data-act="hs-del">Delete set</button>`;
@@ -123,7 +123,8 @@ document.addEventListener('click', (ev) => {
     case 'hs-save': {
       const s = w && w.sets.find((x) => x.id === UI.hSet); if (!s) break;
       const num = (k) => { const n = $('#hs-' + k); if (!n || n.value === '') return null; return Math.max(0, Number(String(n.value).replace(',', '.')) || 0); };
-      ['w', 'r', 't', 'd'].forEach((k) => { if ($('#hs-' + k)) { const v = num(k); if (v == null) delete s[k]; else s[k] = v; } });
+      const hx = D.exercises[s.exId];
+      ['w', 'r', 't', 'd'].forEach((k) => { if ($('#hs-' + k)) { const v = num(k); if (v == null) delete s[k]; else s[k] = k === 'w' && dbEach(hx) ? v * 2 : v; } });
       const note = ($('#hs-note').value || '').trim(); if (note) s.note = note; else delete s.note;
       const row = (w.items || []).flatMap((it) => it.rows || []).find((r) => r.id === s.id); if (row) Object.assign(row, { w: s.w, r: s.r, t: s.t, d: s.d, side: s.side, note: s.note });
       recalcPct(w); w.upd = Date.now(); save(); UI.sheet = null; render(); toast('Set updated'); break;
