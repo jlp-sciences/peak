@@ -58,7 +58,7 @@ function calendarView() {
   const detail = ws.map((w) => {
     const cats = {}; w.sets.forEach((s) => { const c = D.exercises[s.exId] && D.exercises[s.exId].cat; if (c) cats[c] = (cats[c] || 0) + 1; });
     const exs = [...new Set(w.sets.map((s) => s.exId))];
-    return `<div class="day-sess"><b>${esc(w.name)}</b><span class="muted sm">${w.planId ? 'Cycle ' + esc(w.cycle) + ' · week ' + w.week + ' · ' : ''}${w.sets.length} sets · ${Math.max(1, Math.round((w.end - w.start) / 60000))} min</span>
+    return `<div class="day-sess"><b>${esc(w.name)}</b><span class="muted sm">${w.planId ? 'Cycle ' + esc(w.cycle) + ' · week ' + w.week + ' · ' : ''}${w.pct != null ? w.pct + ' % · ' : ''}${w.sets.length} sets · ${Math.max(1, Math.round((w.end - w.start) / 60000))} min</span>
       <div class="chips">${Object.keys(cats).map((c) => `<span class="chip"><i class="dot" style="background:${CATS[c]}"></i>${esc(c)} ${cats[c]}</span>`).join('')}</div>
       <div class="day-ex">${exs.map((id) => `<button class="link" data-act="open-ex" data-v="${id}">${esc(D.exercises[id] ? D.exercises[id].name : id)}</button>`).join('')}</div></div>`;
   }).join('');
@@ -118,10 +118,16 @@ function chartSVG(rows, ex, metric) {
 
 function exerciseView() {
   const ex = D.exercises[UI.exId]; if (!ex) { UI.view = 'exercises'; return exercisesView(); }
+  const d = exDetail(ex);
+  return `<header class="top"><button class="icon-btn" aria-label="Back to exercises" data-act="go" data-v="exercises">${svg('back')}</button><div class="grow"><div class="strong">${esc(ex.name)}</div><span class="muted sm"><i class="dot" style="background:${CATS[ex.cat]}"></i> ${esc(ex.cat)} · ${esc(TYPES[ex.type])}${ex.uni ? ' · L/R' : ''} · rest ${fmtT(ex.rest || 0)}</span></div><button class="btn small outline" data-act="sheet" data-v="editex">Edit</button></header>
+  ${d.tabs}<section class="card">${d.body}</section>`;
+}
+/* tabs + body of an exercise (used by the Exercises screen and by the sheet opened from a session) */
+function exDetail(ex) {
   const metrics = METRICS_BY_TYPE[ex.type]; if (!metrics.includes(UI.metric)) UI.metric = metrics[0];
   const ws = doneWorkouts().filter((w) => w.sets.some((s) => s.exId === ex.id)).reverse();
   const tabs = (typeof GUIDES !== 'undefined' && GUIDES[ex.id] ? [['guide', 'Guide']] : []).concat([['history', 'History'], ['graph', 'Graph'], ['records', 'Records']]);
-  if (UI.exTab === 'guide' && !GUIDES[ex.id]) UI.exTab = 'history';
+  if (!UI.exTab || (UI.exTab === 'guide' && !GUIDES[ex.id])) UI.exTab = 'history';
   let body = '';
   const fmtSet = (s) => [s.w != null ? (ex.type === 'bwkg' ? (s.w ? 'BW+' + fmtW(s.w) : 'BW') : fmtW(s.w)) : null, s.r != null ? s.r : null, s.t != null ? fmtT(s.t) : null, s.d != null ? s.d + ' m' : null].filter((x) => x != null).join(' × ');
   if (UI.exTab === 'guide') {
@@ -155,9 +161,7 @@ function exerciseView() {
     body = ex.uni ? `<div class="rec-grid">${card('L', 'BEST · LEFT', 'L')}${card('R', 'BEST · RIGHT', 'R')}</div>` : `<div class="rec-grid one">${card(null, 'BEST SET', '')}</div>`;
     body += `<p class="muted sm">${all.length} sets logged since you started with Peak.</p>`;
   }
-  return `<header class="top"><button class="icon-btn" aria-label="Back to exercises" data-act="go" data-v="exercises">${svg('back')}</button><div class="grow"><div class="strong">${esc(ex.name)}</div><span class="muted sm"><i class="dot" style="background:${CATS[ex.cat]}"></i> ${esc(ex.cat)} · ${esc(TYPES[ex.type])}${ex.uni ? ' · L/R' : ''} · rest ${fmtT(ex.rest || 0)}</span></div><button class="btn small outline" data-act="sheet" data-v="editex">Edit</button></header>
-  <div class="tabs" role="tablist">${tabs.map(([k, l]) => `<button role="tab" aria-selected="${UI.exTab === k}" class="${UI.exTab === k ? 'on' : ''}" data-act="ex-tab" data-v="${k}">${l}</button>`).join('')}</div>
-  <section class="card">${body}</section>`;
+  return { tabs: `<div class="tabs" role="tablist">${tabs.map(([k, l]) => `<button role="tab" aria-selected="${UI.exTab === k}" class="${UI.exTab === k ? 'on' : ''}" data-act="ex-tab" data-v="${k}">${l}</button>`).join('')}</div>`, body };
 }
 
 /* ---------- analysis ---------- */
@@ -194,6 +198,8 @@ function analysisView() {
   <div class="seg-ctl mb">${periods.map(([k, l]) => `<button class="${UI.anPeriod === k ? 'on' : ''}" aria-pressed="${UI.anPeriod === k}" data-act="an-period" data-v="${k}">${l}</button>`).join('')}</div>
   <p class="muted sm mb">Since ${longDate(from)}</p>
   <div class="tiles">${[['Sessions', ws.length], ['Sets', sets.length], ['Runs', runs], ['Records', prs]].map(([l, v]) => `<div class="tile"><span class="muted sm">${l}</span><span class="big-num">${v}</span></div>`).join('')}</div>
+  ${(() => { const wp = ws.filter((w) => w.pct != null); if (!wp.length) return ''; const full = wp.filter((w) => w.pct >= 100).length; const avg = Math.round(wp.reduce((n, w) => n + w.pct, 0) / wp.length);
+    return `<section class="card completion"><span class="eyebrow">SESSION COMPLETION</span><div class="row between"><span><span class="big-num">${full}</span><span class="soft"> of ${wp.length} sessions finished at 100 %</span></span><span class="muted sm">average ${avg} %</span></div><div class="bar"><i style="width:${Math.round(100 * full / wp.length)}%"></i></div></section>`; })()}
   <div class="an-grid">
     <section class="card"><span class="eyebrow">SETS BY CATEGORY</span>${cats.length ? cats.map((c) => `<div class="hbar"><span>${esc(c)}</span><div class="track"><i style="width:${(100 * byCat[c] / maxC).toFixed(0)}%;background:${CATS[c]}"></i></div><b>${byCat[c]}</b></div>`).join('') : '<p class="muted">No set in this period yet.</p>'}</section>
     <section class="card"><div class="row between"><span class="eyebrow">SYMMETRY · L ÷ R</span><span class="muted sm">100 % = even</span></div>

@@ -108,7 +108,7 @@ const GUIDES = {
   "benefit": "Builds maximal strength at a chosen joint angle with little fatigue.",
   "frames": [
    [
-    "Under the pins, TT depth",
+    "Under the pins, knees bent",
     "<rect x=\"112\" y=\"24\" width=\"8\" height=\"190\" fill=\"#4B5260\"/><rect x=\"236\" y=\"24\" width=\"8\" height=\"190\" fill=\"#4B5260\"/><rect x=\"104\" y=\"54\" width=\"148\" height=\"7\" rx=\"3\" fill=\"#8A93A3\"/><circle cx=\"160\" cy=\"92\" r=\"26\" fill=\"#3A404B\" stroke=\"#6B7383\" stroke-width=\"4\"/><circle cx=\"160\" cy=\"92\" r=\"5\" fill=\"#6B7383\"/><line x1=\"16\" y1=\"214\" x2=\"324\" y2=\"214\" stroke=\"#2A2F38\" stroke-width=\"3\"/><polyline points=\"144,140 188,164 170,208\" fill=\"none\" stroke=\"#5B6372\" stroke-width=\"10\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/><polyline points=\"170,208 190,210\" fill=\"none\" stroke=\"#5B6372\" stroke-width=\"8\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/><polyline points=\"178,94 144,140\" fill=\"none\" stroke=\"#C9D0DB\" stroke-width=\"10\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/><circle cx=\"192\" cy=\"78\" r=\"15\" fill=\"#C9D0DB\"/><polyline points=\"144,140 194,160 178,208\" fill=\"none\" stroke=\"#C9D0DB\" stroke-width=\"10\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/><polyline points=\"178,208 198,210\" fill=\"none\" stroke=\"#C9D0DB\" stroke-width=\"8\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/><polyline points=\"178,94 170,112 162,94\" fill=\"none\" stroke=\"#C9D0DB\" stroke-width=\"8\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/>"
    ],
    [
@@ -474,13 +474,13 @@ const GUIDES = {
   ]
  },
  "splithold": {
-  "setup": "Split stance as in your ready position, feet hip-width apart side to side.",
+  "setup": "Split stance, one foot forward, feet hip-width apart side to side.",
   "move": "Lower until the front thigh is close to level and hold the position.",
   "key": "Trunk upright, front knee over the toes, weight spread over both legs.",
-  "benefit": "Builds leg endurance and strength in a sport-like position.",
+  "benefit": "Builds leg endurance and strength on both legs at once.",
   "frames": [
    [
-    "Ready-position split stance",
+    "Split stance, upright",
     "<line x1=\"16\" y1=\"214\" x2=\"324\" y2=\"214\" stroke=\"#2A2F38\" stroke-width=\"3\"/><polyline points=\"204.1,56.2 198.2,89.7 215.2,119.1\" fill=\"none\" stroke=\"#5B6372\" stroke-width=\"8\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/><polyline points=\"204.1,122.2 178.4,160.3 152.7,198.4\" fill=\"none\" stroke=\"#5B6372\" stroke-width=\"10\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/><polyline points=\"152.7,198.4 166.7,208.4\" fill=\"none\" stroke=\"#5B6372\" stroke-width=\"8\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/><polyline points=\"204.1,56.2 204.1,122.2\" fill=\"none\" stroke=\"#C9D0DB\" stroke-width=\"10\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/><circle cx=\"208.1\" cy=\"35.2\" r=\"15\" fill=\"#C9D0DB\"/><polyline points=\"204.1,122.2 225.7,162.8 210.0,206.0\" fill=\"none\" stroke=\"#5EA2FF\" stroke-width=\"10\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/><polyline points=\"210.0,206.0 230.0,210.0\" fill=\"none\" stroke=\"#5EA2FF\" stroke-width=\"8\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/><polyline points=\"204.1,56.2 210.0,89.7 227.0,119.1\" fill=\"none\" stroke=\"#C9D0DB\" stroke-width=\"8\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/>"
    ],
    [
@@ -587,16 +587,16 @@ const GUIDES = {
  },
  "wallsit": {
   "setup": "Back flat against a wall, feet about two feet in front.",
-  "move": "Slide down until the knees are at your playing depth and hold.",
+  "move": "Slide down until the thighs are close to level and hold.",
   "key": "Knees over the ankles, weight in the heels, back stays on the wall.",
-  "benefit": "Builds leg endurance at the angle you play at.",
+  "benefit": "Builds leg endurance and strength in the knee-bent position.",
   "frames": [
    [
     "Back against the wall",
     "<line x1=\"16\" y1=\"214\" x2=\"324\" y2=\"214\" stroke=\"#2A2F38\" stroke-width=\"3\"/><rect x=\"98\" y=\"14\" width=\"14\" height=\"200\" fill=\"#3A404B\"/><polyline points=\"122.0,48.1 122.0,82.1 122.0,116.1\" fill=\"none\" stroke=\"#5B6372\" stroke-width=\"8\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/><polyline points=\"122.0,114.1 118.0,159.9 120.4,205.8\" fill=\"none\" stroke=\"#5B6372\" stroke-width=\"10\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/><polyline points=\"120.4,205.8 140.4,209.8\" fill=\"none\" stroke=\"#5B6372\" stroke-width=\"8\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/><polyline points=\"122.0,48.1 122.0,114.1\" fill=\"none\" stroke=\"#C9D0DB\" stroke-width=\"10\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/><circle cx=\"126.0\" cy=\"27.1\" r=\"15\" fill=\"#C9D0DB\"/><polyline points=\"122.0,114.1 124.4,160.0 122.0,205.9\" fill=\"none\" stroke=\"#C9D0DB\" stroke-width=\"10\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/><polyline points=\"122.0,205.9 142.0,209.9\" fill=\"none\" stroke=\"#C9D0DB\" stroke-width=\"8\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/><polyline points=\"122.0,48.1 122.0,82.1 122.0,116.1\" fill=\"none\" stroke=\"#C9D0DB\" stroke-width=\"8\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/>"
    ],
    [
-    "Slide to TT depth and hold",
+    "Slide down and hold",
     "<line x1=\"16\" y1=\"214\" x2=\"324\" y2=\"214\" stroke=\"#2A2F38\" stroke-width=\"3\"/><rect x=\"98\" y=\"14\" width=\"14\" height=\"200\" fill=\"#3A404B\"/><polyline points=\"124.0,94.0 124.0,128.0 124.0,162.0\" fill=\"none\" stroke=\"#5B6372\" stroke-width=\"8\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/><polyline points=\"124,160 170.0,160.0 170.0,206.0\" fill=\"none\" stroke=\"#5B6372\" stroke-width=\"10\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/><polyline points=\"170.0,206.0 190.0,210.0\" fill=\"none\" stroke=\"#5B6372\" stroke-width=\"8\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/><polyline points=\"124.0,94.0 124,160\" fill=\"none\" stroke=\"#C9D0DB\" stroke-width=\"10\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/><circle cx=\"128.0\" cy=\"73.0\" r=\"15\" fill=\"#C9D0DB\"/><polyline points=\"124,160 170.0,160.0 170.0,206.0\" fill=\"none\" stroke=\"#5EA2FF\" stroke-width=\"10\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/><polyline points=\"170.0,206.0 190.0,210.0\" fill=\"none\" stroke=\"#5EA2FF\" stroke-width=\"8\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/><polyline points=\"124.0,94.0 124.0,128.0 124.0,162.0\" fill=\"none\" stroke=\"#C9D0DB\" stroke-width=\"8\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/><text x=\"250\" y=\"70\" fill=\"#F2F4F7\" font-family=\"Inter, sans-serif\" font-size=\"14\" font-weight=\"600\" text-anchor=\"middle\">hold</text>"
    ]
   ]

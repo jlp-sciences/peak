@@ -1,7 +1,7 @@
 /* Peak — app logic (vanilla JS, no build step). */
 'use strict';
 
-const APP_VERSION = '0.6.0';
+const APP_VERSION = '0.7.0';
 const STORE_KEY = 'peak.v1';
 
 /* ---------- helpers ---------- */
@@ -209,6 +209,11 @@ function itemCounts(w, item) {
   const rows = ensureRows(w, item); const done = rows.filter((r) => r.done);
   return { L: done.filter((r) => r.side === 'L').length, R: done.filter((r) => r.side === 'R').length, n: done.length, total: rows.length };
 }
+function sessionPct(w) {
+  let done = 0, tot = 0;
+  w.items.forEach((it) => { const r = ensureRows(w, it); tot += r.length; done += r.filter((x) => x.done).length; });
+  return { pct: tot ? Math.min(100, Math.round(100 * done / tot)) : 0, done, tot };
+}
 function itemDone(w, item) { const rows = ensureRows(w, item); return rows.length > 0 && rows.every((r) => r.done); }
 function selectedRow(w, item) {
   const rows = ensureRows(w, item);
@@ -296,7 +301,7 @@ function finishWorkout() {
   ask('Finish and save this session?', 'Finish', () => closeWorkout(w));
 }
 function closeWorkout(w) {
-  w.end = Date.now(); w.upd = w.end; D.active = null;
+  w.end = Date.now(); w.upd = w.end; w.pct = sessionPct(w).pct; D.active = null;
   if (w.planId) {
     const plan = D.plans[w.planId]; const pr = progOf(w.planId);
     if (pr.week === w.week) pr.done[w.sessionId] = true;
@@ -359,10 +364,10 @@ document.addEventListener('visibilitychange', () => { if (document.visibilitySta
 
 /* ---------- UI state ---------- */
 function ask(msg, ok, cb) { UI.confirm = { msg, ok, cb }; UI.sheet = 'confirm'; render(); }
-const UI = { view: 'today', entry: null, lastSet: null, sheet: null, pq: '', pcat: null, expanded: null };
+const UI = { view: 'today', entry: null, lastSet: null, sheet: null, pq: '', pcat: null, expanded: null, selMode: false, selItems: [] };
 function go(view, fromBack) {
   if (!fromBack && view !== UI.view) UI.prev = UI.view;
-  UI.view = view; UI.sheet = null; UI.replaceMode = false; UI.pickPlan = null; render(); window.scrollTo(0, 0);
+  UI.view = view; UI.sheet = null; UI.replaceMode = false; UI.pickPlan = null; UI.selMode = false; UI.selItems = []; render(); window.scrollTo(0, 0);
 }
 /* Phone back button: close the sheet, else previous tab, else Today; from Today the app closes.
    One history entry ("guard") exists whenever we are not on Today with nothing open. */
@@ -506,13 +511,13 @@ function viewSession() {
   if (!w) return `<header class="top"><h1>Session</h1></header><section class="card"><p class="muted">No session in progress.</p><button class="btn primary" data-act="go" data-v="today">Back to Today</button></section>`;
   if (w.cur >= w.items.length) w.cur = Math.max(0, w.items.length - 1);
   const item = w.items[w.cur];
-  const doneN = w.items.filter((it) => itemDone(w, it)).length;
+  const doneN = w.items.filter((it) => itemDone(w, it)).length; const sp = sessionPct(w);
   const mins = Math.floor((Date.now() - w.start) / 60000);
   let detail = '';
   if (item) {
     const ex = D.exercises[item.exId];
     detail = `<section class="card current">
-      <div class="row between top-al"><div><span class="eyebrow"><i class="dot" style="background:${CATS[ex.cat]}"></i> ${esc(item.block || ex.cat)}</span><h2>${esc(ex.name)}</h2><p class="soft">${esc(prescText(item.presc, ex))}</p></div><div class="row">${ex.uni ? '<span class="tag">L first</span>' : ''}${typeof GUIDES !== 'undefined' && GUIDES[ex.id] ? `<button class="icon-btn" aria-label="How to do ${esc(ex.name)}" data-act="guide" data-v="${ex.id}"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg></button>` : ''}</div></div>
+      <div class="row between top-al"><div><span class="eyebrow"><i class="dot" style="background:${CATS[ex.cat]}"></i> ${esc(item.block || ex.cat)}</span><h2>${esc(ex.name)}</h2><p class="soft">${esc(prescText(item.presc, ex))}</p></div><div class="row">${ex.uni ? '<span class="tag">L first</span>' : ''}<button class="icon-btn" aria-label="${esc(ex.name)}: guide, history, graph and records" data-act="exinfo" data-v="${ex.id}"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg></button></div></div>
       ${item.replaced && D.exercises[item.replaced] ? `<p class="soft sm">Replaces ${esc(D.exercises[item.replaced].name)}</p>` : ''}
       ${item.presc && item.presc.cue && !item.replaced ? `<p class="cue">${esc(item.presc.cue)}</p>` : ''}
       <button class="btn small outline replace-btn" data-act="sheet" data-v="replace">Replace</button>
@@ -526,19 +531,58 @@ function viewSession() {
   const list = w.items.map((it, i) => {
     const ex = D.exercises[it.exId]; const d = itemDone(w, it); const c = itemCounts(w, it);
     const head = it.block !== lastBlock ? `<span class="eyebrow blk">${esc((it.block || '').toUpperCase())}</span>` : ''; lastBlock = it.block;
-    return `${head}<button class="ex-row${i === w.cur ? ' on' : ''}${d ? ' done' : ''}" data-act="cur" data-i="${i}">
-      <span class="tick">${d ? svg('check', 14, 3) : ''}</span><i class="dot" style="background:${CATS[ex.cat]}"></i>
+    const selOn = UI.selMode && UI.selItems.includes(i);
+    return `${head}<button class="ex-row${i === w.cur && !UI.selMode ? ' on' : ''}${d ? ' done' : ''}${UI.selMode ? ' selecting' : ''}${selOn ? ' picked' : ''}" data-act="${UI.selMode ? 'selex' : 'cur'}" data-i="${i}"${UI.selMode ? ` role="checkbox" aria-checked="${selOn}"` : ''}>
+      ${UI.selMode ? `<span class="selbox">${selOn ? svg('check', 14, 3) : ''}</span>` : `<span class="tick">${d ? svg('check', 14, 3) : ''}</span>`}<i class="dot" style="background:${CATS[ex.cat]}"></i>
       <span class="ex-name"><b>${esc(ex.name)}</b><small>${esc(prescShort(it.presc, ex) || TYPES[ex.type])}</small></span>
       <span class="muted sm">${c.n}/${c.total}</span></button>`;
   }).join('');
   return `<header class="top sess-top"><button class="icon-btn" aria-label="Back to today" data-act="go" data-v="today">${svg('back')}</button>
-      <div class="grow"><div class="strong">${esc(w.name.split(' — ')[0])}</div><span class="muted sm">${w.planId ? 'Cycle ' + esc(w.cycle) + ' · Week ' + w.week + (w.light ? ' · light' : '') + (w.match ? ' · match version' : '') + ' · ' : ''}${mins} min</span></div>
+      <div class="grow"><div class="strong">${esc(w.name.split(' — ')[0])}</div><span class="muted sm">${w.planId ? 'Cycle ' + esc(w.cycle) + ' · Week ' + w.week + (w.light ? ' · light' : '') + (w.match ? ' · light version' : '') + ' · ' : ''}${mins} min</span></div>
       <button class="btn small outline" data-act="finish">Finish</button></header>
-    <div class="progress"><div class="row between muted sm"><span>${doneN} of ${w.items.length} exercises done</span><span>${w.sets.length} sets</span></div><div class="bar"><i style="width:${w.items.length ? (100 * doneN / w.items.length) : 0}%"></i></div></div>
+    <div class="progress"><div class="row between muted sm"><span><b class="pct">${sp.pct} %</b> · ${sp.done} of ${sp.tot} sets</span><span>${doneN}/${w.items.length} exercises</span></div><div class="bar"><i style="width:${sp.pct}%"></i></div></div>
     <div class="sess-grid">
       <div class="sess-detail">${detail}</div>
-      <aside class="sess-list">${list}<button class="btn outline add-ex" data-act="sheet" data-v="picker">${svg('plus', 18, 2)} Add exercise</button></aside>
-    </div>`;
+      <aside class="sess-list">${UI.selMode ? '' : '<p class="muted sm hint">Long-press an exercise to select and delete.</p>'}${list}${UI.selMode ? '<div class="sel-spacer"></div>' : `<button class="btn outline add-ex" data-act="sheet" data-v="picker">${svg('plus', 18, 2)} Add exercise</button>`}</aside>
+    </div>
+    ${UI.selMode ? `<div class="selbar" role="toolbar" aria-label="Selected exercises"><span><b>${UI.selItems.length}</b> selected</span><button class="btn small outline" data-act="sel-cancel">Cancel</button><button class="btn small danger-fill" data-act="sel-delete"${UI.selItems.length ? '' : ' aria-disabled="true"'}>Delete${UI.selItems.length ? ' (' + UI.selItems.length + ')' : ''}</button></div>` : ''}`;
+}
+
+/* small "i" that reveals a one-line explanation (pure DOM toggle: never re-renders a form) */
+const INFO = { light: 'For example, the day before a competition.' };
+const infoI = (k) => `<button type="button" class="info-i" aria-label="What is this?" aria-expanded="false" data-act="info" data-v="${k}">i</button>`;
+const infoPop = (k) => `<p class="info-pop" data-info="${k}" hidden>${esc(INFO[k])}</p>`;
+
+/* ---------- long-press selection of exercises in a session ---------- */
+const LP = { t: null, x: 0, y: 0, fired: 0 };
+document.addEventListener('pointerdown', (ev) => {
+  const row = ev.target.closest && ev.target.closest('.ex-row'); clearTimeout(LP.t);
+  if (!row || UI.view !== 'session' || UI.selMode) return;
+  LP.x = ev.clientX; LP.y = ev.clientY;
+  LP.t = setTimeout(() => {
+    UI.selMode = true; UI.selItems = [Number(row.dataset.i)]; LP.fired = Date.now();
+    try { if (navigator.vibrate) navigator.vibrate(15); } catch (e) { /* no vibration */ }
+    render();
+  }, 480);
+});
+['pointerup', 'pointercancel', 'pointerleave'].forEach((t) => document.addEventListener(t, () => clearTimeout(LP.t)));
+document.addEventListener('pointermove', (ev) => { if (Math.abs(ev.clientX - LP.x) + Math.abs(ev.clientY - LP.y) > 12) clearTimeout(LP.t); });
+document.addEventListener('contextmenu', (ev) => { if (!ev.target.closest('input, textarea, select, [contenteditable]')) ev.preventDefault(); });
+function deleteSelected(w) {
+  const idx = UI.selItems.slice().sort((a, b) => a - b); if (!idx.length) return;
+  const items = idx.map((i) => w.items[i]).filter(Boolean);
+  const ids = new Set(); items.forEach((it) => ensureRows(w, it).forEach((r) => { if (r.done) ids.add(r.id); }));
+  const doIt = () => {
+    document.querySelectorAll('.ex-row.picked').forEach((n) => n.classList.add('removing'));
+    setTimeout(() => {
+      const curItem = w.items[w.cur];
+      w.items = w.items.filter((_, i) => !idx.includes(i)); w.sets = w.sets.filter((s) => !ids.has(s.id));
+      const k = w.items.indexOf(curItem); w.cur = k >= 0 ? k : Math.max(0, w.items.findIndex((it) => !itemDone(w, it)));
+      UI.selMode = false; UI.selItems = []; UI.selRow = null; UI.lastSet = null; UI.sheet = null;
+      save(); render(); toast(items.length + ' exercise' + (items.length > 1 ? 's' : '') + ' removed');
+    }, 260);
+  };
+  if (ids.size) ask('Delete ' + items.length + ' exercise' + (items.length > 1 ? 's' : '') + ' and ' + ids.size + ' logged set' + (ids.size > 1 ? 's' : '') + '?', 'Delete', doIt); else doIt();
 }
 
 /* ---------- sheets ---------- */
@@ -560,7 +604,7 @@ function sheetHTML() {
     body = `<h2>Sessions of this week</h2>${plan.sessions.map((s) => `<button class="list-btn" data-act="start" data-s="${s.id}"><span><b>${esc(s.name)} — ${esc(s.title)}</b><small>${s.required ? 'Required' : 'Optional'}${pr.done[s.id] ? ' · done ✓' : ''}</small></span></button>`).join('')}`;
   } else if (UI.sheet === 'match') {
     const s = plan.sessions.find((x) => x.id === UI.pending);
-    body = `<h2>${esc(s.name)} — ${esc(s.title)}</h2><label class="toggle"><span><b>Match version</b><small>Match tomorrow: fewer sets, some exercises left out</small></span><input type="checkbox" id="match-cb"></label>
+    body = `<h2>${esc(s.name)} — ${esc(s.title)}</h2><label class="toggle"><span><b>Light version ${infoI('light')}</b><small>Fewer sets, some exercises left out</small></span><input type="checkbox" id="match-cb"></label>${infoPop('light')}
       <button class="btn primary big" data-act="start-confirm">Start</button>`;
   } else if (UI.sheet === 'plans') {
     body = `<h2>Plans</h2>${Object.values(D.plans).map((p) => { const ppr = progOf(p.id); const on = p.id === plan.id; return `<button class="list-btn${on ? ' on' : ''}" data-act="setplan" data-v="${p.id}"><span><b>${esc(p.name)}</b><small>${p.sessions.filter((s) => s.required).length} required${p.sessions.some((s) => !s.required) ? ' + optional' : ''} · now cycle ${esc(cycleOf(p).key)}, week ${ppr.week}</small></span>${on ? '<span class="tag">ACTIVE</span>' : ''}</button>`; }).join('')}
@@ -578,10 +622,12 @@ function sheetHTML() {
       <p class="muted sm">Peak ${APP_VERSION}</p>`;
   } else if (UI.sheet === 'picker') {
     const q = UI.pq.trim().toLowerCase();
-    const list = Object.values(D.exercises).filter((e) => (!UI.pcat || e.cat === UI.pcat) && (!q || e.name.toLowerCase().includes(q))).sort((a, b) => a.name.localeCompare(b.name));
+    const list = Object.values(D.exercises).filter((e) => (q ? e.name.toLowerCase().includes(q) : e.cat === UI.pcat)).sort((a, b) => a.name.localeCompare(b.name));
+    const counts = {}; Object.values(D.exercises).forEach((e) => { counts[e.cat] = (counts[e.cat] || 0) + 1; });
+    const showCats = !q && !UI.pcat;
     body = `<h2>${UI.replaceMode ? 'Replace with…' : UI.pickPlan ? (UI.pickPlan.kind === 'change' ? 'Change to…' : 'Add to the plan') : 'Add exercise'}</h2><input class="search" type="search" placeholder="Search exercises" aria-label="Search exercises" data-in="pq" value="${esc(UI.pq)}">
-      <div class="chips scroll"><button class="chip-btn${!UI.pcat ? ' on' : ''}" data-act="pcat" data-v="">All</button>${Object.keys(CATS).map((c) => `<button class="chip-btn${UI.pcat === c ? ' on' : ''}" data-act="pcat" data-v="${c}"><i class="dot" style="background:${CATS[c]}"></i>${c}</button>`).join('')}</div>
-      <div class="pick-list">${list.map((e) => `<button class="list-btn" data-act="${UI.pickPlan ? 'pe-pick' : 'addex'}" data-v="${e.id}"><i class="dot" style="background:${CATS[e.cat]}"></i><span><b>${esc(e.name)}</b><small>${esc(TYPES[e.type])}${e.uni ? ' · L/R' : ''}</small></span></button>`).join('') || '<p class="muted">No match.</p>'}</div>
+      ${showCats ? `<div class="cat-grid">${Object.keys(CATS).filter((c) => counts[c]).map((c) => `<button class="cat-tile" style="--c:${CATS[c]}" data-act="pcat" data-v="${c}"><i class="dot" style="background:${CATS[c]}"></i><span><b>${c}</b><small>${counts[c]} exercise${counts[c] > 1 ? 's' : ''}</small></span></button>`).join('')}</div>` : `${!q ? `<button class="chip-btn back-cats" data-act="pcat" data-v="">${svg('back', 16)} All categories</button><span class="eyebrow"><i class="dot" style="background:${CATS[UI.pcat]}"></i> ${esc(UI.pcat)}</span>` : `<span class="eyebrow">${list.length} RESULT${list.length === 1 ? '' : 'S'}</span>`}
+      <div class="pick-list">${list.map((e) => `<button class="list-btn" data-act="${UI.pickPlan ? 'pe-pick' : 'addex'}" data-v="${e.id}"><i class="dot" style="background:${CATS[e.cat]}"></i><span><b>${esc(e.name)}</b><small>${esc(TYPES[e.type])}${e.uni ? ' · L/R' : ''}</small></span></button>`).join('') || '<p class="muted">No match.</p>'}</div>`}
       <button class="btn outline" data-act="sheet" data-v="newex">${svg('plus', 18, 2)} New exercise</button>`;
   } else if (UI.sheet === 'newex') {
     body = `<h2>New exercise</h2>
@@ -592,6 +638,9 @@ function sheetHTML() {
       <label class="field">Default rest (seconds)<input id="nx-rest" type="number" inputmode="numeric" value="90"></label>
       <label class="toggle"><span><b>Unilateral · track L / R</b><small>Left first, right matches</small></span><input type="checkbox" id="nx-uni"></label>
       <button class="btn primary big" data-act="newex-save">Save exercise</button>`;
+  } else if (UI.sheet === 'exinfo' && typeof exDetail === 'function' && D.exercises[UI.exId]) {
+    const ex = D.exercises[UI.exId]; const d = exDetail(ex);
+    body = `<h2>${esc(ex.name)}</h2><p class="muted sm"><i class="dot" style="background:${CATS[ex.cat]}"></i> ${esc(ex.cat)} · ${esc(TYPES[ex.type])}${ex.uni ? ' · L/R' : ''}</p>${d.tabs}<div class="exinfo-body">${d.body}</div>`;
   } else if (typeof extraSheet === 'function') {
     body = extraSheet(UI.sheet);
   }
@@ -619,12 +668,13 @@ function render() {
 
 /* ---------- events ---------- */
 document.addEventListener('click', (ev) => {
+  if (LP.fired && Date.now() - LP.fired < 700) { LP.fired = 0; ev.preventDefault(); ev.stopPropagation(); return; }
   unlockAudio();
   const b = ev.target.closest('[data-act]'); if (!b) return;
   const a = b.dataset.act; const w = active();
   switch (a) {
     case 'go': go(b.dataset.v); break;
-    case 'sheet': UI.sheet = b.dataset.v; if (b.dataset.v === 'picker') { UI.pq = ''; } render(); break;
+    case 'sheet': UI.sheet = b.dataset.v; if (b.dataset.v === 'picker') { UI.pq = ''; UI.pcat = null; } render(); break;
     case 'close': if (UI.pickPlan && UI.pe) { const k = UI.pickPlan.kind; UI.pickPlan = null; UI.sheet = k === 'change' ? 'pe-item' : null; render(); break; } UI.sheet = null; UI.replaceMode = false; render(); break;
     case 'start': {
       const s = activePlan().sessions.find((x) => x.id === b.dataset.s);
@@ -636,6 +686,11 @@ document.addEventListener('click', (ev) => {
     case 'free': startWorkout(null, null, {}); break;
     case 'run': { toggleRun(iso()); save(); render(); break; }
     case 'setplan': D.settings.activePlan = b.dataset.v; D.settings.upd = Date.now(); save(); UI.sheet = null; render(); break;
+    case 'exinfo': UI.exId = b.dataset.v; UI.exTab = (typeof GUIDES !== 'undefined' && GUIDES[UI.exId]) ? 'guide' : 'history'; UI.sheet = 'exinfo'; render(); break;
+    case 'info': { ev.preventDefault(); const pop = document.querySelector(`.info-pop[data-info="${b.dataset.v}"]`); if (pop) { pop.hidden = !pop.hidden; b.setAttribute('aria-expanded', String(!pop.hidden)); } break; }
+    case 'selex': { const i = Number(b.dataset.i); UI.selItems = UI.selItems.includes(i) ? UI.selItems.filter((x) => x !== i) : UI.selItems.concat(i); render(); break; }
+    case 'sel-cancel': UI.selMode = false; UI.selItems = []; render(); break;
+    case 'sel-delete': if (w && UI.selItems.length) deleteSelected(w); break;
     case 'cur': if (w) { w.cur = Number(b.dataset.i); UI.selRow = null; UI.lastSet = null; save(); render(); window.scrollTo(0, 0); } break;
     case 'selrow': UI.selRow = b.dataset.id; render(); break;
     case 'check': if (w) toggleRow(w, w.items[w.cur], b.dataset.id); break;
@@ -664,7 +719,7 @@ document.addEventListener('click', (ev) => {
     case 'rest-default': if (REST.exId && D.exercises[REST.exId]) { D.exercises[REST.exId].rest = REST.base; D.exercises[REST.exId].upd = Date.now(); save(); b.hidden = true; toast('New default rest for ' + D.exercises[REST.exId].name + ': ' + fmtT(REST.base)); } break;
     case 'pcat': UI.pcat = b.dataset.v || null; render(); break;
     case 'replace-with': if (w) { replaceItem(w, w.cur, b.dataset.v); } UI.sheet = null; render(); break;
-    case 'replace-other': UI.replaceMode = true; UI.pq = ''; UI.sheet = 'picker'; render(); break;
+    case 'replace-other': UI.replaceMode = true; UI.pq = ''; UI.pcat = null; UI.sheet = 'picker'; render(); break;
     case 'addex': if (w && UI.replaceMode) { UI.replaceMode = false; replaceItem(w, w.cur, b.dataset.v); UI.sheet = null; render(); break; }
       if (w) { w.items.push({ exId: b.dataset.v, block: 'Added', presc: null }); w.cur = w.items.length - 1; UI.entry = null; UI.lastSet = null; save(); } UI.sheet = null; render(); break;
     case 'newex-save': {

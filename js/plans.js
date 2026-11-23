@@ -50,7 +50,7 @@ function planEditView() {
           <label class="field">Minutes<input data-pf="s:${si}:minutes" type="number" inputmode="numeric" value="${s.minutes || ''}"></label></div>
         <label class="field">Focus<input data-pf="s:${si}:title" value="${esc(s.title || '')}" placeholder="e.g. Upper + rotational power"></label>
         <label class="toggle"><span><b>Required</b><small>Counts towards completing the week</small></span><input type="checkbox" data-pf="s:${si}:required" ${s.required ? 'checked' : ''}></label>
-        <label class="toggle"><span><b>Match version</b><small>Offers a lighter version the day before a match</small></span><input type="checkbox" data-pf="s:${si}:matchable" ${s.matchable ? 'checked' : ''}></label>`;
+        <label class="toggle"><span><b>Light version ${infoI('light')}</b><small>Lets you start a lighter version of this session</small></span><input type="checkbox" data-pf="s:${si}:matchable" ${s.matchable ? 'checked' : ''}></label>${infoPop('light')}`;
       if (!own) {
         body += `<div class="pe-note"><p class="soft sm">Cycle ${esc(cyc)} uses the exercises of cycle ${esc(fk)} (${nEx}).</p><button class="btn small outline" data-act="pe-own" data-s="${si}">Give cycle ${esc(cyc)} its own exercises</button></div>`;
       } else {
@@ -111,8 +111,8 @@ function planItemSheet() {
       ${hasW ? numIn('pi-w4load', 'Load (kg)', w4.load) : ''}</div>`;
   }
   if (s.matchable) {
-    h += `<div class="pe-sub"><span class="eyebrow">MATCH VERSION</span>
-      <label class="field">Day before a match<select id="pi-match"><option value="keep"${m === 'keep' ? ' selected' : ''}>Keep as planned</option><option value="less"${m === 'less' ? ' selected' : ''}>Fewer sets</option><option value="skip"${m === 'skip' ? ' selected' : ''}>Skip this exercise</option></select></label>
+    h += `<div class="pe-sub"><span class="eyebrow">LIGHT VERSION</span>
+      <label class="field">In the light version<select id="pi-match"><option value="keep"${m === 'keep' ? ' selected' : ''}>Keep as planned</option><option value="less"${m === 'less' ? ' selected' : ''}>Fewer sets</option><option value="skip"${m === 'skip' ? ' selected' : ''}>Skip this exercise</option></select></label>
       ${ex.uni ? `<div class="pe-grid">${numIn('pi-mL', 'Left sets', mm.L)}${numIn('pi-mR', 'Right sets', mm.R)}</div>` : numIn('pi-ms', 'Sets', mm.s)}</div>`;
   }
   h += `<button class="btn primary big" data-act="pe-item-save">Save exercise</button>
@@ -232,10 +232,10 @@ document.addEventListener('click', (ev) => {
     case 'pe-badd': S_.tpl[pe.cyc].push(['New block', []]); break;
     case 'pe-bmove': move(S_.tpl[pe.cyc], bi, di); break;
     case 'pe-bdel': { const bl = S_.tpl[pe.cyc][bi]; const go_ = () => { S_.tpl[pe.cyc].splice(bi, 1); peDirty(); UI.sheet = null; render(); }; if (bl[1].length) ask('Remove the block ' + bl[0] + ' and its ' + bl[1].length + ' exercises?', 'Remove', go_); else go_(); return; }
-    case 'pe-add': UI.pickPlan = { kind: 'add', s: si, b: bi }; UI.pq = ''; UI.sheet = 'picker'; render(); return;
+    case 'pe-add': UI.pickPlan = { kind: 'add', s: si, b: bi }; UI.pq = ''; UI.pcat = null; UI.sheet = 'picker'; render(); return;
     case 'pe-item': pe.item = { s: si, b: bi, i: Number(b.dataset.i) }; UI.sheet = 'pe-item'; render(); return;
     case 'pe-pick': pePicked(b.dataset.v); return;
-    case 'pe-change-ex': UI.pickPlan = { kind: 'change' }; UI.pq = ''; UI.sheet = 'picker'; render(); return;
+    case 'pe-change-ex': UI.pickPlan = { kind: 'change' }; UI.pq = ''; UI.pcat = null; UI.sheet = 'picker'; render(); return;
     case 'pe-item-save': readItemSheet(); UI.sheet = null; break;
     case 'pe-imove': { readItemSheet(); const r = pe.item; const list = d.sessions[r.s].tpl[pe.cyc][r.b][1]; const j = r.i + di; if (j >= 0 && j < list.length) { move(list, r.i, di); r.i = j; } break; }
     case 'pe-idel': { const r = pe.item; d.sessions[r.s].tpl[pe.cyc][r.b][1].splice(r.i, 1); pe.item = null; UI.sheet = null; break; }
