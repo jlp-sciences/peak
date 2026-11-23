@@ -324,46 +324,82 @@ function goalsCardHTML() {
     <button class="trophy-line" data-act="go" data-v="progress"><span class="cup">${CUP}</span><span><b>${unlocked}</b> of 70 trophies</span><span class="muted sm">See all ›</span></button></section>`;
 }
 
+
+/* ---------- medal artwork: shape by metal, icon by family, Peak ribbon ---------- */
+const MED = { Bronze: ['#D9935E', '#A8673A', '#C47F4C'], Silver: ['#D3DAE3', '#8E99A8', '#BCC5D1'], Gold: ['#F5C95A', '#B8862A', '#E8B53F'], Platinum: ['#8FE6DC', '#3FA79B', '#74D3C8'], Diamond: ['#B9D0FF', '#5C7FD1', '#9CB9F7'], Locked: ['#4B5260', '#2F343D', '#3E444F'], Secret: ['#2A2F38', '#1B1F26', '#232830'], Ultimate: ['#F5C95A', '#B8862A', '#E8B53F'] };
+const FAM_IC = { flame: '<path d="M12 3c1 4 5 5.5 5 10a5 5 0 0 1-10 0c0-2.5 1.5-3.5 2-5 1 1.5 2 2 2 2s-.5-4 1-7z"/>', target: '<circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r="1"/>', cal: '<rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16M9 3v4M15 3v4M9 15l2 2 4-4"/>', clip: '<rect x="6" y="4" width="12" height="17" rx="2"/><path d="M9.5 3.5h5v3h-5zM9 11h6M9 15h4"/>', db: '<path d="M6 8v8M3 10v4M18 8v8M21 10v4M6 12h12"/>', stack: '<path d="M12 4l9 4-9 4-9-4zM3 12l9 4 9-4M3 16l9 4 9-4"/>', scale: '<path d="M12 4v16M8 20h8M5 7h14M5 7l-3 6h6zM19 7l-3 6h6z"/>', grid: '<rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/>', run: '<circle cx="15" cy="4.5" r="2"/><path d="M13 8l-3 5 4 3v5M10 13l-4 1M14 9l3 3h3"/>', ruler: '<rect x="3" y="8" width="18" height="8" rx="1.5"/><path d="M7 8v3M11 8v4M15 8v3M19 8v2"/>', heart: '<path d="M12 20s-7-4.5-7-10a4 4 0 0 1 7-2.5A4 4 0 0 1 19 10c0 5.5-7 10-7 10z"/>', mount: '<path d="M3 20l6-10 4 6 2-3 6 7zM15 10V4l4 1.5-4 1.5"/>', moon: '<path d="M20 14.5A8 8 0 1 1 9.5 4 6.5 6.5 0 0 0 20 14.5z"/>', lock: '<rect x="6" y="11" width="12" height="9" rx="2"/><path d="M9 11V8a3 3 0 0 1 6 0v3"/>', crown: '<path d="M4 17l1.5-9 4.5 4 2-6 2 6 4.5-4L20 17zM4 20h16"/>' };
+const GROUP_IC = { Goals: 'target', Consistency: 'cal', Plan: 'clip', Strength: 'db', Volume: 'stack', Balance: 'scale', Variety: 'grid', Cardio: 'run', 'Body and tests': 'ruler', Loyalty: 'heart', Expeditions: 'mount', Secret: 'moon', Ultimate: 'crown' };
+const iconOf = (t) => (['hot-streak', 'unbreakable', 'comeback-streak', 'joker'].includes(t.id) ? 'flame' : GROUP_IC[t.group] || 'target');
+function medalSVG(metal, icon, S) {
+  const [f, d, inner] = MED[metal]; const ink = metal === 'Secret' ? '#9AA3B2' : metal === 'Locked' ? '#8A93A3' : '#3A2A12';
+  let shape;
+  if (metal === 'Platinum') shape = `<polygon points="28,12 72,12 94,50 72,88 28,88 6,50" fill="${d}"/><polygon points="31,17 69,17 88,50 69,83 31,83 12,50" fill="${f}"/><polygon points="35,25 65,25 80,50 65,75 35,75 20,50" fill="${inner}"/>`;
+  else if (metal === 'Diamond') shape = `<polygon points="26,10 74,10 96,40 50,94 4,40" fill="${d}"/><polygon points="28,15 72,15 90,40 50,87 10,40" fill="${f}"/><path d="M10 40h80M28 15l10 25 12-25 12 25 10-25M38 40l12 47 12-47" stroke="${d}" stroke-width="1.6" fill="none" opacity=".7"/>`;
+  else {
+    shape = `<circle cx="50" cy="50" r="40" fill="${d}"/><circle cx="50" cy="50" r="35" fill="${f}"/><circle cx="50" cy="50" r="27" fill="${inner}"/>`;
+    if (metal === 'Silver') shape = `<circle cx="50" cy="50" r="46" fill="none" stroke="${d}" stroke-width="3" stroke-dasharray="5 4"/>` + shape;
+    if (metal === 'Gold' || metal === 'Ultimate') { let l = ''; for (let i = 0; i < 6; i++) { [200 + i * 22, -20 - i * 22].forEach((deg) => { const a = deg * Math.PI / 180; const cx = 50 + 46 * Math.cos(a), cy = 50 - 46 * Math.sin(a); l += `<ellipse cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" rx="7" ry="3.5" fill="#B8862A" transform="rotate(${(90 - deg).toFixed(0)} ${cx.toFixed(1)} ${cy.toFixed(1)})"/>`; }); } shape = l + shape; }
+    if (metal === 'Ultimate') shape = '<circle cx="50" cy="50" r="48" fill="none" stroke="#5EA2FF" stroke-width="3"/><circle cx="50" cy="50" r="44" fill="none" stroke="#FF9E4A" stroke-width="2"/>' + shape;
+  }
+  const plain = metal === 'Locked' || metal === 'Secret';
+  const ribbon = plain ? '' : '<polygon points="30,70 42,70 38,104 31,97 24,102" fill="#5EA2FF"/><polygon points="58,70 70,70 76,102 69,97 62,104" fill="#FF9E4A"/>';
+  const hl = plain ? '' : '<path d="M24 38a28 28 0 0 1 22-20" stroke="#fff" stroke-opacity=".55" stroke-width="5" fill="none" stroke-linecap="round"/>';
+  const ic = metal === 'Secret' ? `<text x="50" y="62" text-anchor="middle" font-size="34" font-weight="800" fill="${ink}">?</text>` : `<g transform="translate(32 32) scale(1.5)" fill="none" stroke="${ink}" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">${FAM_IC[icon]}</g>`;
+  return `<svg class="medal-svg" width="${S}" height="${Math.round(S * 1.1)}" viewBox="0 -2 100 110" aria-hidden="true">${ribbon}${shape}${hl}${ic}</svg>`;
+}
+
 /* ---------- Progress screen ---------- */
-function trophyCard(x, compact) {
+function trophyCard(x) {
   const t = x.t; const locked = x.level === 0; const secretHidden = t.fam === 'secret' && locked;
-  const metal = x.level ? metalOf(x.level - 1, x.max) : null; const col = metal ? METAL_COL[metal] : '#4B5260';
+  const metal = t.fam === 'ultimate' ? (locked ? 'Locked' : 'Ultimate') : x.level ? metalOf(x.level - 1, x.max) : null; const col = metal && MED[metal] ? MED[metal][0] : '#4B5260';
+  const art = secretHidden ? medalSVG('Secret', null, 52) : t.fam === 'ultimate' ? medalSVG(locked ? 'Locked' : 'Ultimate', 'crown', 52) : locked ? medalSVG('Locked', 'lock', 52) : medalSVG(metal, iconOf(t), 52);
   const nextTxt = x.level < x.max ? `${t.fmt(Math.min(x.value, x.next))} / ${t.fmt(x.next)}` : 'Max level';
   const pct = x.level < x.max ? Math.max(0, Math.min(100, 100 * x.value / x.next)) : 100;
-  const dots = x.max > 1 && x.max <= 5 ? `<span class="tdots">${Array.from({ length: x.max }, (_, i) => `<i style="${i < x.level ? 'background:' + METAL_COL[metalOf(i, x.max)] : ''}"></i>`).join('')}</span>` : x.max > 5 ? `<span class="muted sm">${x.level}/${x.max}</span>` : '';
+  const MC = ['#D9935E', '#D3DAE3', '#F5C95A', '#8FE6DC', '#B9D0FF'];
+  const dots = x.max > 1 && x.max <= 5 ? `<span class="tdots">${Array.from({ length: x.max }, (_, i) => `<i style="${i < x.level ? 'background:' + MED[metalOf(i, x.max)][0] : ''}"></i>`).join('')}</span>` : x.max > 5 ? `<span class="muted sm">${x.level}/${x.max}</span>` : '';
   const na = x.applies === false;
-  return `<div class="trophy${locked ? ' locked' : ''}${t.fam === 'ultimate' ? ' ultimate' : ''}${na ? ' na' : ''}"><span class="medal" style="--m:${col}">${secretHidden ? '?' : t.fam === 'ultimate' ? '★' : CUP}</span>
+  return `<div class="trophy${locked ? ' locked' : ''}${t.fam === 'ultimate' ? ' ultimate' : ''}${na ? ' na' : ''}"><span class="medal-wrap">${art}</span>
     <span class="tbody"><b>${secretHidden ? '???' : esc(t.name)}</b><small>${secretHidden ? 'Secret trophy' : esc(na ? 'Set a weekly run goal to unlock' : t.cond)}</small>
-    ${secretHidden || na ? '' : `<span class="tbar"><i style="width:${pct}%;background:${col}"></i></span><span class="trow"><span class="muted sm">${metal ? metal + ' · ' : ''}${nextTxt}</span>${dots}</span>`}</span></div>`;
+    ${secretHidden || na ? '' : `<span class="tbar"><i style="width:${pct}%;background:${col}"></i></span><span class="trow"><span class="muted sm">${metal && !locked ? metal + ' · ' : ''}${nextTxt}</span>${dots}</span>`}</span></div>`;
 }
 function progressView() {
   const A = awards(); const e = A.cur.era; const r = A.cur.res;
-  const tab = UI.trTab || 'goal';
-  const fams = [['goal', 'Goals'], ['career', 'Career'], ['secret', 'Secret']];
-  const list = A.list.filter((x) => x.t.fam === tab);
-  const groups = {}; list.forEach((x) => { (groups[x.t.group] = groups[x.t.group] || []).push(x); });
-  const ult = A.list.find((x) => x.t.fam === 'ultimate');
-  const past = A.eras.filter((x) => x.era.to).reverse();
+  const seg = UI.prTab || 'overview';
+  const segs = [['overview', 'Overview'], ['trophies', 'Trophies'], ['gear', 'Gear'], ['archive', 'Archive']];
   const unlocked = A.list.reduce((n, x) => n + (x.level > 0 ? 1 : 0), 0);
-  return `<header class="top"><button class="icon-btn" aria-label="Back" data-act="go" data-v="today">${svg('back')}</button><div class="grow"><h1>Progress</h1></div></header>
-  <div class="prog-grid">
-    <div class="col">
+  let body = '';
+  if (seg === 'overview') {
+    const recent = A.list.flatMap((x) => x.dates.map((d, i) => ({ x, d, lvl: i + 1 }))).sort((a, b) => b.d.localeCompare(a.d)).slice(0, 4);
+    body = `<div class="prog-grid"><div class="col">
       <section class="card"><div class="row between"><span class="eyebrow">YOUR GOALS</span><button class="btn small outline" data-act="sheet" data-v="goals">Edit goals</button></div>
         <div class="goals-row">${ring(r.now.count, e.weekly, 84, 'This week', e.weekly + ' sessions')}${ring(r.monthNow.count, e.monthly, 84, MONTHS[new Date().getMonth()], e.monthly + ' sessions')}${e.runs ? ring(r.now.runs, e.runs, 84, 'Runs', 'this week') : ''}</div>
         <p class="muted sm">Since ${longDate(e.from)}. Changing a goal archives these goal trophies and opens a new set.</p></section>
       <section class="card streak-card"><div class="streak-box big${r.streak ? ' lit' : ''}"><span class="flame">${FLAME}</span><span class="big-num">${r.streak}</span><span class="g-lab">week streak</span></div>
         <div class="streak-meta"><span><b>${r.bestStreak}</b> best</span><span><b>${r.weeksMet}</b> weeks at goal</span><span class="jokers">${Array.from({ length: 2 }, (_, i) => `<i class="${i < r.jokers ? 'on' : ''}">${FLAKE}</i>`).join('')} <b>${r.jokers}</b> joker${r.jokers === 1 ? '' : 's'}</span></div>
         <p class="muted sm">A joker is earned every 4 weeks at goal (2 max). It saves your streak when a week is missed.</p></section>
+    </div><div class="col">
       ${typeof climbCardHTML === 'function' ? climbCardHTML(true) : ''}
-      ${trophyCard(ult)}
-    </div>
-    <div class="col">
-      <div class="seg-ctl">${fams.map(([k, l]) => `<button class="${tab === k ? 'on' : ''}" aria-pressed="${tab === k}" data-act="tr-tab" data-v="${k}">${l} <small>${A.list.filter((x) => x.t.fam === k && x.level > 0).length}/${A.list.filter((x) => x.t.fam === k).length}</small></button>`).join('')}</div>
+      <section class="card"><div class="row between"><span class="eyebrow">TROPHIES · ${unlocked}/70</span><button class="link" data-act="pr-tab" data-v="trophies">All ›</button></div>
+        ${recent.length ? `<div class="recent-tro">${recent.map(({ x, d, lvl }) => `<div class="rt">${medalSVG(x.t.fam === 'ultimate' ? 'Ultimate' : metalOf(lvl - 1, x.max), x.t.fam === 'ultimate' ? 'crown' : iconOf(x.t), 44)}<b>${esc(x.t.name)}</b><small>${shortDate(d)}</small></div>`).join('')}</div>` : '<p class="muted sm">Finish a session to unlock your first trophy.</p>'}</section>
+      ${trophyCard(A.list.find((x) => x.t.fam === 'ultimate'))}
+    </div></div>`;
+  } else if (seg === 'trophies') {
+    const tab = UI.trTab || 'goal'; const fams = [['goal', 'Goals'], ['career', 'Career'], ['secret', 'Secret']];
+    const list = A.list.filter((x) => x.t.fam === tab); const groups = {}; list.forEach((x) => { (groups[x.t.group] = groups[x.t.group] || []).push(x); });
+    body = `<div class="seg-ctl">${fams.map(([k, l]) => `<button class="${tab === k ? 'on' : ''}" aria-pressed="${tab === k}" data-act="tr-tab" data-v="${k}">${l} <small>${A.list.filter((x) => x.t.fam === k && x.level > 0).length}/${A.list.filter((x) => x.t.fam === k).length}</small></button>`).join('')}</div>
       <p class="muted sm">${unlocked} of 70 trophies unlocked.</p>
       ${Object.entries(groups).map(([g, xs]) => `${tab === 'career' ? `<span class="eyebrow">${esc(g.toUpperCase())}</span>` : ''}<div class="trophies">${xs.map((x) => trophyCard(x)).join('')}</div>`).join('')}
-      ${tab === 'goal' ? `<span class="eyebrow">PAST GOALS</span>${past.length ? past.map(({ era }) => { const sm = era.summary || eraSummary(era); return `<div class="era"><b>${era.weekly}/week · ${era.monthly}/month${era.runs ? ' · ' + era.runs + ' runs/week' : ''}</b><span class="muted sm">${shortDate(era.from)} – ${shortDate(era.to)} · ${sm.weeksMet} weeks at goal · best streak ${sm.bestStreak}</span><div class="chips">${sm.trophies.map((g) => { const t = TROPHIES.find((x) => x.id === g.id); const n = t.tiers.length; return `<span class="chip"><i class="dot" style="background:${METAL_COL[metalOf(g.level - 1, n)]}"></i>${esc(t.name)}</span>`; }).join('') || '<span class="muted sm">No goal trophy</span>'}</div></div>`; }).join('') : '<p class="muted sm">When you change a goal, the trophies of the old goal are kept here with their dates.</p>'}` : ''}
-    </div>
-  </div>`;
+      ${trophyCard(A.list.find((x) => x.t.fam === 'ultimate'))}`;
+  } else if (seg === 'gear') {
+    body = typeof gearGridHTML === 'function' ? gearGridHTML() : '';
+  } else {
+    const past = A.eras.filter((x) => x.era.to).reverse();
+    body = `<div class="prog-grid"><div class="col"><section class="card"><span class="eyebrow">PAST GOALS</span>${past.length ? past.map(({ era }) => { const sm = era.summary || eraSummary(era); return `<div class="era"><b>${era.weekly}/week · ${era.monthly}/month${era.runs ? ' · ' + era.runs + ' runs/week' : ''}</b><span class="muted sm">${shortDate(era.from)} – ${shortDate(era.to)} · ${sm.weeksMet} weeks at goal · best streak ${sm.bestStreak}</span><div class="chips">${sm.trophies.map((g) => { const t = TROPHIES.find((x) => x.id === g.id); const n = t.tiers.length; return `<span class="chip"><i class="dot" style="background:${MED[metalOf(g.level - 1, n)][0]}"></i>${esc(t.name)}</span>`; }).join('') || '<span class="muted sm">No goal trophy</span>'}</div></div>`; }).join('') : '<p class="muted sm">When you change a goal, the trophies of the old goal are kept here with their dates.</p>'}</section></div>
+      <div class="col"><section class="card">${typeof summitsArchiveHTML === 'function' ? summitsArchiveHTML() : ''}</section></div></div>`;
+  }
+  return `<header class="top"><div class="grow"><h1>Progress</h1></div>${typeof accountButton === 'function' ? accountButton() : ''}</header>
+    <div class="seg-ctl pr-seg">${segs.map(([k, l]) => `<button class="${seg === k ? 'on' : ''}" aria-pressed="${seg === k}" data-act="pr-tab" data-v="${k}">${l}</button>`).join('')}</div>
+    ${body}`;
 }
 function goalsSheet() {
   const e = currentEra(); const g = UI.goalDraft || { weekly: e.weekly, monthly: e.monthly, runs: e.runs || 0 }; UI.goalDraft = g;
@@ -392,9 +428,9 @@ function showNextPop() {
   if (POP.open || !POP.queue.length) return; const item = POP.queue.shift(); POP.open = true;
   if (item.summit) { const host = document.createElement('div'); host.className = 'award-pop'; host.setAttribute('role', 'dialog'); host.setAttribute('aria-label', 'Summit reached'); host.innerHTML = summitPopHTML(item.summit); document.body.appendChild(host); try { if (navigator.vibrate) navigator.vibrate([30, 60, 30]); } catch (e) { /* none */ } host.addEventListener('click', (ev) => { if (ev.target.closest('[data-pop="ok"]')) { host.classList.add('out'); setTimeout(() => { host.remove(); POP.open = false; showNextPop(); }, 220); } }); return; }
   const { x, level } = item;
-  const metal = metalOf(level - 1, x.max); const col = METAL_COL[metal];
+  const metal = metalOf(level - 1, x.max); const col = MED[metal][0];
   const host = document.createElement('div'); host.className = 'award-pop'; host.setAttribute('role', 'dialog'); host.setAttribute('aria-label', 'Trophy unlocked');
-  host.innerHTML = `<div class="award-card" style="--m:${col}"><div class="award-face"><span class="medal big" style="--m:${col}">${x.t.fam === 'ultimate' ? '★' : CUP}</span><span class="eyebrow">${x.t.fam === 'secret' ? 'SECRET TROPHY' : 'TROPHY UNLOCKED'}</span><h2>${esc(x.t.name)}</h2><p class="soft">${esc(x.t.cond)}</p><span class="tag" style="color:${col};border-color:${col}">${metal}${x.max > 1 ? ' · level ' + level + '/' + x.max : ''}</span><button class="btn primary big" data-pop="ok">Nice</button></div></div>${['Gold', 'Platinum', 'Diamond'].includes(metal) ? confettiHTML() : ''}`;
+  host.innerHTML = `<div class="award-card" style="--m:${col}"><div class="award-face"><span class="pop-medal"><span class="rays" aria-hidden="true"></span>${medalSVG(x.t.fam === 'ultimate' ? 'Ultimate' : metal, x.t.fam === 'ultimate' ? 'crown' : iconOf(x.t), 108)}</span><span class="eyebrow">${x.t.fam === 'secret' ? 'SECRET TROPHY' : 'TROPHY UNLOCKED'}</span><h2>${esc(x.t.name)}</h2><p class="soft">${esc(x.t.cond)}</p><span class="tag" style="color:${col};border-color:${col}">${metal}${x.max > 1 ? ' · level ' + level + '/' + x.max : ''}</span><button class="btn primary big" data-pop="ok">Nice</button></div></div>${['Gold', 'Platinum', 'Diamond'].includes(metal) ? confettiHTML() : ''}`;
   document.body.appendChild(host);
   try { if (navigator.vibrate) navigator.vibrate([20, 40, 30]); } catch (e) { /* no vibration */ }
   host.addEventListener('click', (ev) => { if (ev.target.closest('[data-pop="ok"]') || ev.target === host) { host.classList.add('out'); setTimeout(() => { host.remove(); POP.open = false; showNextPop(); }, 220); } });
@@ -415,6 +451,7 @@ document.addEventListener('click', (ev) => {
   const b = ev.target.closest('[data-act]'); if (!b) return;
   const a = b.dataset.act;
   if (a === 'tr-tab') { UI.trTab = b.dataset.v; render(); }
+  if (a === 'pr-tab') { UI.prTab = b.dataset.v; render(); window.scrollTo(0, 0); }
   if (a === 'goal-step') { const k = b.dataset.k; const lim = { weekly: [1, 7], monthly: [1, 31], runs: [0, 7] }[k]; const g = UI.goalDraft; g[k] = Math.max(lim[0], Math.min(lim[1], (g[k] || 0) + Number(b.dataset.d))); render(); }
   if (a === 'goal-save') {
     const res = setGoals(UI.goalDraft); UI.goalDraft = null; UI.sheet = null; AW.key = null;

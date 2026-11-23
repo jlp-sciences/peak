@@ -1,7 +1,7 @@
 /* Peak — app logic (vanilla JS, no build step). */
 'use strict';
 
-const APP_VERSION = '1.0.0';
+const APP_VERSION = '1.1.0';
 const STORE_KEY = 'peak.v1';
 
 /* ---------- helpers ---------- */
@@ -32,7 +32,8 @@ const ICON = {
   up: '<path d="M6 15l6-6 6 6"/>',
   down: '<path d="M6 9l6 6 6-6"/>',
   chev: '<path d="M9 6l6 6-6 6"/>',
-  edit: '<path d="M4 20h4L19 9l-4-4L4 16z"/>'
+  edit: '<path d="M4 20h4L19 9l-4-4L4 16z"/>',
+  progress: '<path d="M3 20l6-10 4 6 2-3 6 7zM15 10V4l4 1.5-4 1.5"/>'
 };
 const svg = (name, size = 22, sw = 1.8) => `<svg aria-hidden="true" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${sw}" stroke-linecap="round" stroke-linejoin="round">${ICON[name]}</svg>`;
 const LOGO = (size) => `<svg aria-hidden="true" width="${size}" height="${size}" viewBox="0 0 360 360"><path d="M92 272 L180 112" stroke="#5EA2FF" stroke-width="38" stroke-linecap="round"/><path d="M180 112 L268 272" stroke="#FF9E4A" stroke-width="38" stroke-linecap="round"/><circle cx="180" cy="58" r="22" fill="#F2F4F7"/></svg>`;
@@ -396,9 +397,9 @@ function toast(msg) {
 }
 
 /* ---------- views ---------- */
-const navOn = (k) => UI.view === k || (k === 'exercises' && UI.view === 'exercise') || (k === 'today' && (UI.view === 'progress' || UI.view === 'account'));
+const navOn = (k) => UI.view === k || (k === 'exercises' && UI.view === 'exercise') || (k === 'today' && UI.view === 'account');
 function navHTML() {
-  const items = [['today', 'Today'], ['calendar', 'Calendar'], ['exercises', 'Exercises'], ['analysis', 'Analysis'], ['body', 'Body']];
+  const items = [['today', 'Today'], ['calendar', 'Calendar'], ['progress', 'Progress'], ['exercises', 'Exercises'], ['analysis', 'Analysis'], ['body', 'Body']];
   return `<nav class="nav" aria-label="Main"><div class="nav-logo">${LOGO(34)}</div>${items.map(([k, l]) => `<button class="nav-btn${navOn(k) ? ' on' : ''}" data-act="go" data-v="${k}" ${navOn(k) ? 'aria-current="page"' : ''}>${svg(k, 24)}<span>${l}</span></button>`).join('')}</nav>`;
 }
 
