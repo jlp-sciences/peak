@@ -228,6 +228,7 @@ function setFromRow(ex, row) {
   if (['wr', 'bwkg', 'reps'].includes(ex.type)) s.r = Number(row.r) || 0;
   if (['time', 'wt'].includes(ex.type)) s.t = Number(row.t) || 0;
   if (ex.type === 'wd') s.d = Number(row.d) || 0;
+  if (row.note) s.note = row.note;
   return s;
 }
 function writeSet(w, ex, row) {
@@ -371,7 +372,7 @@ function ask(msg, ok, cb) { UI.confirm = { msg, ok, cb }; UI.sheet = 'confirm'; 
 const UI = { view: 'today', entry: null, lastSet: null, sheet: null, pq: '', pcat: null, expanded: null, selMode: false, selItems: [] };
 function go(view, fromBack) {
   if (!fromBack && view !== UI.view) UI.prev = UI.view;
-  UI.view = view; UI.sheet = null; UI.replaceMode = false; UI.pickPlan = null; UI.selMode = false; UI.selItems = []; render(); window.scrollTo(0, 0);
+  UI.view = view; UI.sheet = null; UI.replaceMode = false; UI.pickPlan = null; UI.selMode = false; UI.selItems = []; UI.noteOpen = null; UI.histAdd = false; render(); window.scrollTo(0, 0);
 }
 /* Phone back button: close the sheet, else previous tab, else Today; from Today the app closes.
    One history entry ("guard") exists whenever we are not on Today with nothing open. */
@@ -397,7 +398,7 @@ function toast(msg) {
 }
 
 /* ---------- views ---------- */
-const navOn = (k) => UI.view === k || (k === 'exercises' && UI.view === 'exercise') || (k === 'today' && UI.view === 'account');
+const navOn = (k) => UI.view === k || (k === 'exercises' && UI.view === 'exercise') || (k === 'today' && UI.view === 'account') || (k === 'calendar' && UI.view === 'workout');
 function navHTML() {
   const items = [['today', 'Today'], ['calendar', 'Calendar'], ['progress', 'Progress'], ['exercises', 'Exercises'], ['analysis', 'Analysis'], ['body', 'Body']];
   return `<nav class="nav" aria-label="Main"><div class="nav-logo">${LOGO(34)}</div>${items.map(([k, l]) => `<button class="nav-btn${navOn(k) ? ' on' : ''}" data-act="go" data-v="${k}" ${navOn(k) ? 'aria-current="page"' : ''}>${svg(k, 24)}<span>${l}</span></button>`).join('')}</nav>`;
@@ -509,6 +510,7 @@ function setRowsHTML(w, item) {
     const label = 'Set ' + counter[k] + (r.side ? ' ' + (r.side === 'L' ? 'left' : 'right') : '');
     return `<div class="set-row${r.done ? ' done' : ''}${sel && sel.id === r.id ? ' sel' : ''}">
       <button class="row-main" data-act="selrow" data-id="${r.id}" aria-label="Edit ${label}"><span class="n">${counter[k]}</span>${r.side ? `<span class="badge ${r.side}">${r.side}</span>` : '<span></span>'}<span class="v">${val}</span>${s && s.feel ? `<span class="muted sm">${s.feel}</span>` : ''}</button>
+      <button class="icon-btn sm note-ic${r.note ? ' on' : ''}" aria-label="Note for ${label}" data-act="setnote" data-id="${r.id}">${typeof BUBBLE === 'function' ? BUBBLE(!!r.note) : 'N'}</button>
       <button class="check${r.done ? ' on' : ''}" role="checkbox" aria-checked="${r.done}" aria-label="${label} done" data-act="check" data-id="${r.id}">${svg('check', 18, 3)}</button>
       <button class="icon-btn sm" aria-label="Remove ${label}" data-act="delrow" data-id="${r.id}">${svg('close', 16)}</button></div>`;
   }).join('');
@@ -529,7 +531,9 @@ function viewSession() {
       ${item.replaced && D.exercises[item.replaced] ? `<p class="soft sm">Replaces ${esc(D.exercises[item.replaced].name)}</p>` : ''}
       ${item.presc && item.presc.cue && !item.replaced ? `<p class="cue">${esc(item.presc.cue)}</p>` : ''}
       <button class="btn small outline replace-btn" data-act="sheet" data-v="replace">Replace</button>
+      ${(() => { const last = typeof lastExerciseNote === 'function' ? lastExerciseNote(item.exId, w.id) : null; return last && !item.note ? `<p class="last-note">Last note (${shortDate(last.date)}): ${esc(last.note)}</p>` : ''; })()}
       <div class="sets">${setRowsHTML(w, item)}</div>
+      ${item.note || UI.noteOpen === 'item' ? `<label class="field sm-field">Exercise note<textarea rows="1" data-note="item" placeholder="e.g. seat at 4">${esc(item.note || '')}</textarea></label>` : '<button class="link" data-act="note-open" data-v="item">+ Exercise note</button>'}
       ${entryHTML(w, item)}
     </section>`;
   } else {
@@ -548,7 +552,7 @@ function viewSession() {
   return `<header class="top sess-top"><button class="icon-btn" aria-label="Back to today" data-act="go" data-v="today">${svg('back')}</button>
       <div class="grow"><div class="strong">${esc(w.name.split(' — ')[0])}</div><span class="muted sm">${w.late && typeof shortDate === 'function' ? 'Logged for ' + shortDate(w.date) + ' · ' : ''}${w.planId ? 'Cycle ' + esc(w.cycle) + ' · Week ' + w.week + (w.light ? ' · light' : '') + (w.match ? ' · light version' : '') + ' · ' : ''}${mins} min</span></div>
       <button class="btn small outline" data-act="finish">Finish</button></header>
-    <div class="progress"><div class="row between muted sm"><span><b class="pct">${sp.pct} %</b> · ${sp.done} of ${sp.tot} sets</span><span>${doneN}/${w.items.length} exercises</span></div><div class="bar"><i style="width:${sp.pct}%"></i></div></div>
+    <div class="progress"><div class="row between muted sm"><span><b class="pct">${sp.pct} %</b> · ${sp.done} of ${sp.tot} sets</span><span>${doneN}/${w.items.length} exercises</span></div><div class="bar"><i style="width:${sp.pct}%"></i></div>${w.note || UI.noteOpen === 'session' ? `<textarea class="sess-note" rows="1" data-note="session" placeholder="Session note (optional)">${esc(w.note || '')}</textarea>` : '<button class="link" data-act="note-open" data-v="session">+ Session note</button>'}</div>
     <div class="sess-grid">
       <div class="sess-detail">${detail}</div>
       <aside class="sess-list">${UI.selMode ? '' : '<p class="muted sm hint">Long-press an exercise to select and delete.</p>'}${list}${UI.selMode ? '<div class="sel-spacer"></div>' : `<button class="btn outline add-ex" data-act="sheet" data-v="picker">${svg('plus', 18, 2)} Add exercise</button>`}</aside>
@@ -703,7 +707,7 @@ document.addEventListener('click', (ev) => {
     case 'selex': { const i = Number(b.dataset.i); UI.selItems = UI.selItems.includes(i) ? UI.selItems.filter((x) => x !== i) : UI.selItems.concat(i); render(); break; }
     case 'sel-cancel': UI.selMode = false; UI.selItems = []; render(); break;
     case 'sel-delete': if (w && UI.selItems.length) deleteSelected(w); break;
-    case 'cur': if (w) { w.cur = Number(b.dataset.i); UI.selRow = null; UI.lastSet = null; save(); render(); window.scrollTo(0, 0); } break;
+    case 'cur': if (w) { UI.noteOpen = null; w.cur = Number(b.dataset.i); UI.selRow = null; UI.lastSet = null; save(); render(); window.scrollTo(0, 0); } break;
     case 'selrow': UI.selRow = b.dataset.id; render(); break;
     case 'check': if (w) toggleRow(w, w.items[w.cur], b.dataset.id); break;
     case 'addrow': if (w) addRow(w, w.items[w.cur]); break;

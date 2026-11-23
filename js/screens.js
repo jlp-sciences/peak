@@ -59,11 +59,13 @@ function calendarView() {
   const detail = ws.map((w) => {
     const cats = {}; w.sets.forEach((s) => { const c = D.exercises[s.exId] && D.exercises[s.exId].cat; if (c) cats[c] = (cats[c] || 0) + 1; });
     const exs = [...new Set(w.sets.map((s) => s.exId))];
-    return `<div class="day-sess"><b>${esc(w.name)}</b><span class="muted sm">${w.planId ? 'Cycle ' + esc(w.cycle) + ' · week ' + w.week + ' · ' : ''}${w.pct != null ? w.pct + ' % · ' : ''}${w.sets.length} sets · ${Math.max(1, Math.round((w.end - w.start) / 60000))} min</span>
+    return `<div class="day-sess"><div class="row between"><b>${esc(w.name)}</b><button class="btn small outline" data-act="hist-open" data-v="${w.id}">Open</button></div>${w.note ? `<p class="soft sm">“${esc(w.note)}”</p>` : ''}<span class="muted sm">${w.planId ? 'Cycle ' + esc(w.cycle) + ' · week ' + w.week + ' · ' : ''}${w.pct != null ? w.pct + ' % · ' : ''}${w.sets.length} sets · ${Math.max(1, Math.round((w.end - w.start) / 60000))} min</span>
       <div class="chips">${Object.keys(cats).map((c) => `<span class="chip"><i class="dot" style="background:${CATS[c]}"></i>${esc(c)} ${cats[c]}</span>`).join('')}</div>
       <div class="day-ex">${exs.map((id) => `<button class="link" data-act="open-ex" data-v="${id}">${esc(D.exercises[id] ? D.exercises[id].name : id)}</button>`).join('')}</div></div>`;
   }).join('');
-  return `<header class="top"><h1>Calendar</h1></header>
+  const seg = `<div class="seg-ctl cal-seg"><button class="${UI.calMode !== 'list' ? 'on' : ''}" aria-pressed="${UI.calMode !== 'list'}" data-act="cal-mode" data-v="month">Month</button><button class="${UI.calMode === 'list' ? 'on' : ''}" aria-pressed="${UI.calMode === 'list'}" data-act="cal-mode" data-v="list">List</button></div>`;
+  if (UI.calMode === 'list' && typeof historyListHTML === 'function') return `<header class="top"><h1>Calendar</h1></header>${seg}<div class="hist-list">${historyListHTML()}</div>`;
+  return `<header class="top"><h1>Calendar</h1></header>${seg}
   <div class="cal-wrap">
     <section class="card cal">
       <div class="row between"><button class="icon-btn" aria-label="Previous month" data-act="cal-month" data-d="-1">${svg('back')}</button><span class="strong">${MONTHS[m - 1]} ${y}</span><button class="icon-btn flip" aria-label="Next month" data-act="cal-month" data-d="1">${svg('back')}</button></div>
@@ -138,7 +140,8 @@ function exDetail(ex) {
     body = ws.map((w) => {
       const ss = setsOf(w, ex.id);
       const col = (side) => ss.filter((s) => s.side === side).map((s) => `<span>${fmtSet(s)}</span>`).join('');
-      return `<div class="hist"><div class="row between hist-h"><b>${esc(longDate(w.date).toUpperCase())}</b><span class="muted sm">${w.planId ? 'Cycle ' + esc(w.cycle) + ' · wk ' + w.week : 'Free session'}</span></div>
+      const itNote = ((w.items || []).find((it) => it.exId === ex.id && it.note) || {}).note; const sNotes = ss.filter((s) => s.note);
+      return `<div class="hist"><div class="row between hist-h"><b>${esc(longDate(w.date).toUpperCase())}</b><span class="muted sm">${w.planId ? 'Cycle ' + esc(w.cycle) + ' · wk ' + w.week : 'Free session'}</span></div>${itNote ? `<p class="set-note">${esc(itNote)}</p>` : ''}${sNotes.map((s) => `<p class="set-note sm">${s.side ? s.side + ' · ' : ''}${fmtSet(s)}: ${esc(s.note)}</p>`).join('')}
         ${ex.uni ? `<div class="hist-cols"><div><span class="badge L">L</span>${col('L')}</div><div><span class="badge R">R</span>${col('R')}</div></div>` : `<div class="hist-one">${ss.map((s) => `<span>${fmtSet(s)}</span>`).join('')}</div>`}</div>`;
     }).join('') || '<p class="muted">No session with this exercise yet.</p>';
     if (ex.ref) body += `<div class="note">FitNotes reference · ${esc(ex.ref.date)} · ${esc(ex.ref.text)}</div>`;
