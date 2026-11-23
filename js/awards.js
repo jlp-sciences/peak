@@ -410,6 +410,7 @@ function progressView() {
         <p class="muted sm">A joker is earned every 4 weeks at goal (2 max). It saves your streak when a week is missed.</p></section>
     </div><div class="col">
       ${typeof climbCardHTML === 'function' ? climbCardHTML(true) : ''}
+      ${withinReachHTML(A)}
       <section class="card"><div class="row between"><span class="eyebrow">TROPHIES · ${unlocked}/${TROPHIES.length}</span><button class="link" data-act="pr-tab" data-v="trophies">All ›</button></div>
         ${recent.length ? `<div class="recent-tro">${recent.map(({ x, d, lvl }) => `<button class="rt" data-act="tr-open" data-v="${x.t.id}">${medalSVG(x.t.fam === 'ultimate' ? 'Ultimate' : metalOf(lvl - 1, x.max), x.t.fam === 'ultimate' ? 'crown' : iconOf(x.t), 44)}<b>${esc(x.t.name)}</b><small>${shortDate(d)}</small></button>`).join('')}</div>` : '<p class="muted sm">Finish a session to unlock your first trophy.</p>'}</section>
       ${trophyCard(A.list.find((x) => x.t.fam === 'ultimate'))}
@@ -482,6 +483,72 @@ const SECRET_HINTS = {
   'triple-crown': 'Some days, everything goes up at once.', 'perfect-mirror': 'Left and right, perfectly balanced.',
   'leap-day': 'A day that only comes every four years.', 'sneaky-strong': 'Who said easy weeks are easy?', 'full-house': 'Every box ticked, even the optional ones.'
 };
+/* ---------- how to get it: one concrete tip per trophy ---------- */
+const MONO = new Set(['sessions', 'full', 'records', 'recordEx', 'sets', 'reps', 'hours', 'left', 'tonnage', 'runs', 'engine', 'weeks', 'cycles', 'months', 'balanced', 'explorer', 'checkin', 'double', 'schedule', 'summits', 'better', 'tested', 'light']);
+function ratePerWeek(stat) { if (!stat || !stat.length) return 0; const cut = addDays(iso(), -28); const before = stat.slice().reverse().find(([d]) => d <= cut); return Math.max(0, (valueOf(stat) - (before ? before[1] : 0)) / 4); }
+const inWeeks = (n) => (n <= 1.5 ? 'about a week' : n < 8 ? '~' + Math.round(n) + ' weeks' : n < 104 ? '~' + Math.round(n / 4.35) + ' months' : 'over 2 years');
+const CAT_ROUTINE = { Legs: 'Leg day', Chest: 'Push', Triceps: 'Push', Shoulders: 'Push', Back: 'Pull', Biceps: 'Pull', Core: 'Core', Power: 'Power & athletic', Conditioning: 'Full body C' };
+function tipFor(x, A) {
+  const t = x.t; const s = A.career; if (x.level >= x.max) return ''; if (t.fam === 'secret' && x.level === 0) return SECRET_HINTS[t.id] || '';
+  const rem = x.next - x.value; const bw = typeof bwAt === 'function' ? bwAt(iso()) : null; const kg = (v) => Math.ceil(v / 2.5) * 2.5;
+  const paced = (unit) => { const r = ratePerWeek(s[t.stat]); return r > 0 ? `About ${r < 10 ? Math.round(r * 10) / 10 : Math.round(r)} ${unit} a week lately → next level in ${inWeeks(rem / r)}.` : ''; };
+  if (t.fam === 'goal') {
+    const e = A.cur.era; const ws = finished(); const wk = ws.filter((w) => w.date >= mondayOf(iso())).length; const mo = ws.filter((w) => w.date.slice(0, 7) === iso().slice(0, 7)).length;
+    const left = Math.max(0, e.weekly - wk); const week = left ? `${left} more session${left > 1 ? 's' : ''} this week (${wk}/${e.weekly}).` : `This week's goal is met (${wk}/${e.weekly}).`;
+    switch (t.id) {
+      case 'monthly-mission': case 'iron-habit': return `${mo}/${e.monthly} sessions this month. ${t.id === 'iron-habit' ? 'Meet the monthly goal several months in a row.' : 'About ' + Math.ceil(e.monthly / 4.3) + ' a week does it.'}`;
+      case 'runners-rhythm': return `Log ${e.runs} run(s) a week with “I ran today”.`;
+      case 'overachiever': return `Do one session more than your goal in a week: ${e.weekly + 1} this week.`;
+      case 'full-marks': return `Meet the weekly goal with every session at 100 % — tick every set. ${week}`;
+      case 'perfect-month': return 'Meet the weekly goal every week of one calendar month.';
+      case 'joker': return 'Miss a week while holding a joker: it saves your streak (earned every 4 weeks at goal).';
+      case 'comeback-streak': return 'After losing a streak, meet your weekly goal 4 weeks in a row again.';
+      default: return week + ' Plan the rest in the calendar.';
+    }
+  }
+  if (t.stat.startsWith('cat_')) {
+    const c = t.stat.slice(4); const p = paced('sets');
+    if (p) return p + (c === 'Mobility' ? ' Daily mobility adds about 8 sets a day.' : '');
+    return c === 'Mobility' ? 'Do the daily mobility from Today: 8 sets in 10 minutes.' : `Not in your recent sessions. Start a ${CAT_ROUTINE[c] || 'routine'} routine from Free session to get going.`;
+  }
+  switch (t.id) {
+    case 'plate-club': return x.value ? `Your best barbell lift is ${Math.round(x.value)} kg: ${Math.round(rem)} kg to go. The deadlift usually gets there first.` : 'Load a barbell with one 20 kg plate a side (60 kg) on a deadlift or a squat.';
+    case 'glow-up': return `Best so far: ${t.fmt(x.value)}. Accessory exercises grow fastest — follow the suggested weights and rate every set.`;
+    case 'record-collector': return `Records on ${x.value} exercises. Any exercise done twice can give a record: a routine brings in new ones.`;
+    case 'plateau-breaker': return 'Pick a lift stuck for 3 months: drop the weight 10 % for two weeks, then go back for a record.';
+    case 'still-got-it': return 'After 2 weeks or more off, go for a rep record on a light accessory exercise in your first session back.';
+    case 'twin-records': return 'On a left/right exercise (Bulgarian split squat, DB row…), add one rep on the left and match it on the right in the same session.';
+    case 'on-a-roll': return 'Set at least one record every week — any exercise, any side counts.';
+    case 'first-record': case 'record-breaker': return paced('records') || 'Beat your last best on any exercise: one more rep at the same weight counts.';
+    case 'squat-std': case 'deadlift-std': return bw ? `At ${bw} kg body weight: one rep at ${kg(x.next * bw)} kg (best so far ${t.fmt(x.value)}).` : 'Log your body weight in Body to see the weight to lift.';
+    case 'one-leg': return bw ? `At ${bw} kg: 6 reps per leg with two ${kg(x.next * bw / 2)} kg dumbbells.` : 'Log your body weight in Body to see the dumbbells to use.';
+    case 'iron-grip': return bw ? `At ${bw} kg: 30 m with two ${kg(x.next * bw / 2)} kg dumbbells.` : 'Log your body weight in Body to see the dumbbells to use.';
+    case 'pullup-power': return `Best ${x.value} strict reps: ${rem} to go. Add one rep every week or two; on weighted weeks, finish with a body-weight max set.`;
+    case 'weighted-pullup': return `Best +${x.value} kg: add 2 kg once you reach 4 × 8 clean, as in your plan.`;
+    case 'pushup-power': return `Best ${x.value}: ${rem} to go. One max set at the end of a Push routine, once a week.`;
+    case 'core-steel': return `Best ${t.fmt(x.value)} per side: add 10 s every week.`;
+    case 'finisher': case 'flawless': return 'Tick every set, warm-up and mobility included — optional blocks never count against you.';
+    case 'explorer': return `${x.value} different exercises so far. Routines pick the ones you have not done yet.`;
+    case 'full-spectrum': return 'One week with every category: your plan plus a Push routine covers chest and triceps.';
+    case 'all-rounder': return 'A record in every category: a Push routine covers chest and triceps, the plan does the rest.';
+    case 'big-day': return 'A long Leg day or Full body A at 1 h 30 adds up fast.';
+    case 'on-schedule': return 'Plan your next session in the calendar, then do it that day.';
+    case 'mind-over-body': return 'Every other trophy at its highest level — the list below shows what is left.';
+    default: break;
+  }
+  if (MONO.has(t.stat)) { const U = { hours: 'hours', tonnage: 'tonnes', sets: 'sets', reps: 'reps', left: 'left sets', runs: 'runs', summits: 'summits', records: 'records' }; const p = paced(U[t.stat] || 'times'); if (p) return p; }
+  return `${t.fmt(Math.max(0, rem))} to go for the next level.`;
+}
+function withinReach(A) {
+  return A.list.filter((x) => x.t.fam !== 'ultimate' && !(x.t.fam === 'secret' && x.level === 0) && x.applies !== false && x.level < x.max && x.next > 0)
+    .map((x) => ({ x, p: Math.min(0.999, x.value / x.next) })).sort((a, b) => b.p - a.p)
+    .filter((y, i, arr) => y.x.t.fam !== 'goal' || arr.findIndex((z) => z.x.t.fam === 'goal') === i).slice(0, 3); // at most one goal trophy
+}
+function withinReachHTML(A) {
+  const L = withinReach(A); if (!L.length) return '';
+  return `<section class="card"><span class="eyebrow">WITHIN REACH</span><div class="reach">${L.map(({ x, p }) => { const m = metalOf(x.level, x.max);
+    return `<button class="reach-row" data-act="tr-open" data-v="${x.t.id}">${medalSVG(m, iconOf(x.t), 40)}<span class="grow"><span class="row between"><b>${esc(x.t.name)}</b><span class="muted sm">${x.t.fmt(x.value)} / ${x.t.fmt(x.next)}</span></span><span class="tbar"><i style="width:${Math.round(p * 100)}%;background:${MED[m][0]}"></i></span><small class="muted">${esc(tipFor(x, A))}</small></span></button>`; }).join('')}</div></section>`;
+}
 function trophySheet() {
   const A = awards(); const x = A.list.find((y) => y.t.id === UI.trId); if (!x) return '';
   const t = x.t; const locked = x.level === 0; const secretHidden = t.fam === 'secret' && locked;
@@ -500,6 +567,7 @@ function trophySheet() {
   const prog = x.level < x.max
     ? `<section class="card tr-prog"><div class="row between"><span class="eyebrow">NEXT · ${esc(t.fam === 'ultimate' ? 'Ultimate' : metalOf(x.level, x.max))}</span><b>${t.fmt(Math.min(x.value, x.next))} / ${t.fmt(x.next)}</b></div><span class="tbar"><i style="width:${pct}%;background:${MED[t.fam === 'ultimate' ? 'Ultimate' : metalOf(x.level, x.max)][0]}"></i></span><small class="muted">${Math.round(pct)} %</small></section>`
     : `<section class="card tr-prog"><b>Highest level reached 🎉</b></section>`;
+  const tip = tipFor(x, A); const tipHTML = tip ? `<section class="card tr-tip"><span class="eyebrow">HOW TO GET IT</span><p>${esc(tip)}</p></section>` : '';
   let levels = '';
   if (t.fam !== 'ultimate') {
     const many = x.max > 8; const show = many ? x.tiers.map((v, i) => i).filter((i) => i < x.level + 2 && (i >= x.level - 3 || i === 0)) : x.tiers.map((v, i) => i);
@@ -509,7 +577,7 @@ function trophySheet() {
     const left = A.list.filter((y) => y.t.fam !== 'ultimate' && (y.t.fam === 'goal' ? y.bestEver < y.max : y.level < y.max));
     levels = `<section class="card"><span class="eyebrow">STILL TO MAX · ${left.length}</span><ul class="tr-left">${left.map((y) => `<li><button class="linkish" data-act="tr-open" data-v="${y.t.id}">${y.t.fam === 'secret' && y.level === 0 ? '???' : esc(y.t.name)}</button><span class="muted sm">${y.t.fam === 'goal' ? y.bestEver : y.level}/${y.max}</span></li>`).join('')}</ul></section>`;
   }
-  return head + era + prog + levels;
+  return head + era + prog + tipHTML + levels;
 }
 function timerSheet() {
   const w = active(); const it = w && w.items[w.cur]; const ex = it && D.exercises[it.exId]; const def = ex && ex.rest;

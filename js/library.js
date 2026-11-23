@@ -123,8 +123,6 @@ const WARMUPS = {
   outB: { w: [{ ex: 'armcircle', s: 1, r: [10, 10] }, { ex: 'thoracic', L: 1, R: 1, t: 30 }, { ex: 'scappush', s: 1, r: [10, 10] }], c: [{ ex: 'doorpec', L: 1, R: 1, t: 45 }, { ex: 'catcow', s: 1, r: [8, 8] }] },
   outC: { w: [{ ex: 'legswing', L: 1, R: 1, r: [10, 10] }, { ex: 'hip9090', L: 1, R: 1, t: 30 }, { ex: 'askip', s: 2, r: [10, 10] }], c: [{ ex: 'hamstretch', L: 1, R: 1, t: 45 }] }
 };
-/* the plan's daily mobility (10 min) */
-const DAILY_MOB = [{ ex: 'hip9090', L: 1, R: 1, t: 120 }, { ex: 'anklewall', L: 1, R: 1, t: 60 }, { ex: 'thoracic', L: 1, R: 1, t: 60 }, { ex: 'couch', L: 1, R: 1, t: 60 }];
 const MOB_FIX = ['hip9090', 'thoracic', 'anklewall', 'doorpec', 'bandwalk']; // exercises whose type changed in 1.5
 /* adds the blocks to every cycle of the built-in sessions that do not have them yet; returns true if something changed */
 function addWarmups(plans, redo) {

@@ -1,7 +1,7 @@
 /* Peak — app logic (vanilla JS, no build step). */
 'use strict';
 
-const APP_VERSION = '1.5.0';
+const APP_VERSION = '1.6.0';
 const STORE_KEY = 'peak.v1';
 
 /* ---------- helpers ---------- */
@@ -226,7 +226,7 @@ function itemCounts(w, item) {
 }
 function sessionPct(w) {
   let done = 0, tot = 0;
-  w.items.forEach((it) => { if (typeof COOL !== 'undefined' && it.block === COOL) return; const r = ensureRows(w, it); tot += r.length; done += r.filter((x) => x.done).length; });
+  w.items.forEach((it) => { if (/\(optional\)$/.test(it.block || '')) return; const r = ensureRows(w, it); tot += r.length; done += r.filter((x) => x.done).length; });
   return { pct: tot ? Math.min(100, Math.round(100 * done / tot)) : 0, done, tot };
 }
 function itemDone(w, item) { const rows = ensureRows(w, item); return rows.length > 0 && rows.every((r) => r.done); }
@@ -467,9 +467,9 @@ function viewToday() {
       ${typeof goalsCardHTML === 'function' ? goalsCardHTML() : ''}
       ${typeof climbCardHTML === 'function' ? climbCardHTML(false) : ''}
       <div class="quick">
-        <button class="btn outline" data-act="free">${svg('plus', 18, 2)} Free session</button>
+        <button class="btn outline" data-act="sheet" data-v="routine">${svg('plus', 18, 2)} Free session</button>
         <button class="btn ${ran ? 'filled' : 'outline'}" data-act="run" aria-pressed="${ran}">${svg('run', 18, 2)} ${ran ? 'Ran today ✓' : 'I ran today'}</button>
-        ${typeof DAILY_MOB !== 'undefined' ? (() => { const mob = D.workouts.some((x) => x.mob && x.end && x.date === iso()); return `<button class="btn ${mob ? 'filled' : 'outline'} span2" data-act="daily-mob" aria-pressed="${mob}">${svg('body', 18, 2)} ${mob ? 'Daily mobility done ✓' : 'Daily mobility · 10 min'}</button>`; })() : ''}
+        ${typeof DAILY_MOBS !== 'undefined' ? (() => { const mob = D.workouts.some((x) => x.mob && x.end && x.date === iso()); return `<button class="btn ${mob ? 'filled' : 'outline'} span2" data-act="daily-mob" aria-pressed="${mob}">${svg('body', 18, 2)} ${mob ? 'Daily mobility done ✓' : 'Daily mobility · 10 min' + (typeof nextMob === 'function' ? ' · ' + nextMob() : '')}</button>`; })() : ''}
       </div>
       ${isLightWeek(plan) ? `<section class="card hero"><span class="eyebrow">WEEK ${plan.weeks} · TESTS</span><p class="soft">Light week: log your tests (jumps, 5-10-5, row max reps, arms, weight).</p><button class="btn primary" data-act="sheet" data-v="tests">Log tests</button></section>` : ''}
       ${recent.length ? `<section class="card"><div class="row between"><span class="eyebrow">RECENT</span><button class="btn small ghost-link" data-act="view-history">View history ›</button></div>${recent.map((x) => `<button class="recent" data-act="hist-open" data-v="${x.id}" data-lpw="${x.id}" aria-label="${esc(x.name)}, ${longDate(x.date)}. Long press to edit or delete."><span>${esc(x.name.split(' — ')[0])}</span><span class="muted sm">${longDate(x.date)} · ${x.sets.length} sets</span></button>`).join('')}<p class="muted sm hint">Long press a session to edit or delete it.</p></section>` : ''}
@@ -723,12 +723,7 @@ document.addEventListener('click', (ev) => {
     }
     case 'start-confirm': { const m = $('#match-cb'); startWorkout(UI.pendingPlan || activePlan().id, UI.pending, { match: !!(m && m.checked), date: UI.pendingDate || null }); UI.pendingPlan = null; UI.pendingDate = null; break; }
     case 'free': startWorkout(null, null, { date: b.dataset.date || null }); break;
-    case 'daily-mob': {
-      if (active()) { go('session'); break; }
-      startWorkout(null, null); const mw = active(); Object.assign(mw, { mob: true, free: false, name: 'Daily mobility' });
-      mw.items = DAILY_MOB.map((it) => ({ exId: it.ex, block: 'Daily mobility', presc: prescribe(it, 1, false, false) })).filter((x) => x.presc);
-      save(); render(); break;
-    }
+    case 'daily-mob': if (active()) go('session'); else { UI.sheet = 'mob'; render(); } break;
     case 'run': { toggleRun(iso()); save(); render(); break; }
     case 'setplan': D.settings.activePlan = b.dataset.v; D.settings.upd = Date.now(); save(); UI.sheet = null; render(); break;
     case 'exinfo': UI.exId = b.dataset.v; UI.exTab = hasGuide(UI.exId) ? 'guide' : 'history'; UI.sheet = 'exinfo'; render(); break;
