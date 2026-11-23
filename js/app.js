@@ -1,7 +1,7 @@
 /* Peak — app logic (vanilla JS, no build step). */
 'use strict';
 
-const APP_VERSION = '0.8.0';
+const APP_VERSION = '0.9.0';
 const STORE_KEY = 'peak.v1';
 
 /* ---------- helpers ---------- */
@@ -315,7 +315,8 @@ function closeWorkout(w) {
       toast('Week complete — on to ' + cycleOf(plan).key + ' · week ' + pr.week);
     } else toast('Session saved');
   } else toast('Session saved');
-  save(); stopRest(); releaseWake(); go('today');
+  save(); stopRest(); releaseWake(); if (typeof showSummary === 'function') POP.open = true; go('today');
+  if (typeof showSummary === 'function') showSummary(w);
 }
 
 /* ---------- rest timer ---------- */
@@ -395,7 +396,7 @@ function toast(msg) {
 }
 
 /* ---------- views ---------- */
-const navOn = (k) => UI.view === k || (k === 'exercises' && UI.view === 'exercise');
+const navOn = (k) => UI.view === k || (k === 'exercises' && UI.view === 'exercise') || (k === 'today' && UI.view === 'progress');
 function navHTML() {
   const items = [['today', 'Today'], ['calendar', 'Calendar'], ['exercises', 'Exercises'], ['analysis', 'Analysis'], ['body', 'Body']];
   return `<nav class="nav" aria-label="Main"><div class="nav-logo">${LOGO(34)}</div>${items.map(([k, l]) => `<button class="nav-btn${navOn(k) ? ' on' : ''}" data-act="go" data-v="${k}" ${navOn(k) ? 'aria-current="page"' : ''}>${svg(k, 24)}<span>${l}</span></button>`).join('')}</nav>`;
@@ -448,6 +449,7 @@ function viewToday() {
       ${nextHTML}
     </div>
     <div class="col">
+      ${typeof goalsCardHTML === 'function' ? goalsCardHTML() : ''}
       <div class="quick">
         <button class="btn outline" data-act="free">${svg('plus', 18, 2)} Free session</button>
         <button class="btn ${ran ? 'filled' : 'outline'}" data-act="run" aria-pressed="${ran}">${svg('run', 18, 2)} ${ran ? 'Ran today ✓' : 'I ran today'}</button>
@@ -658,12 +660,14 @@ function render() {
     exercise: exerciseView, analysis: analysisView, body: bodyView
   };
   if (typeof planEditView === 'function') views.planedit = planEditView;
+  if (typeof EXTRA_VIEWS !== 'undefined') Object.assign(views, EXTRA_VIEWS);
   const app = $('#app');
   app.className = 'app view-' + UI.view;
   $('#main').innerHTML = (views[UI.view] || viewToday)();
   $('#navwrap').innerHTML = (UI.view === 'session' || UI.view === 'planedit') ? '' : navHTML();
   if (typeof afterRender === 'function') afterRender();
   $('#sheetwrap').innerHTML = sheetHTML();
+  if (typeof awardsAfterRender === 'function') { try { awardsAfterRender(); } catch (e) { console.error(e); } }
   const f = $('#import-file'); if (f) f.addEventListener('change', importFile);
   if (UI.view === 'session') keepAwake();
   tickRest();
