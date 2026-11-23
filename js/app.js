@@ -1,7 +1,7 @@
 /* Peak — app logic (vanilla JS, no build step). */
 'use strict';
 
-const APP_VERSION = '1.6.0';
+const APP_VERSION = '1.7.0';
 const STORE_KEY = 'peak.v1';
 
 /* ---------- helpers ---------- */
@@ -229,6 +229,12 @@ function sessionPct(w) {
   w.items.forEach((it) => { if (/\(optional\)$/.test(it.block || '')) return; const r = ensureRows(w, it); tot += r.length; done += r.filter((x) => x.done).length; });
   return { pct: tot ? Math.min(100, Math.round(100 * done / tot)) : 0, done, tot };
 }
+function ringHTML(c, col, d) {
+  const R = 9.5, C = 2 * Math.PI * R, f = c.total ? c.n / c.total : 0;
+  return `<span class="ring${d ? ' full' : ''}" aria-label="${c.n} of ${c.total} sets"><svg viewBox="0 0 26 26" width="26" height="26"><circle cx="13" cy="13" r="${R}" fill="none" stroke="var(--line2)" stroke-width="2.5"/>`
+    + (f > 0 ? `<circle cx="13" cy="13" r="${R}" fill="${d ? col : 'none'}" stroke="${col}" stroke-width="2.5" stroke-linecap="round" stroke-dasharray="${(f * C).toFixed(2)} ${C.toFixed(2)}" transform="rotate(-90 13 13)"/>` : '')
+    + (d ? '<path d="M8.5 13.4l3 3 6-6.2" fill="none" stroke="#0E1014" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>' : '') + '</svg></span>';
+}
 function itemDone(w, item) { const rows = ensureRows(w, item); return rows.length > 0 && rows.every((r) => r.done); }
 function selectedRow(w, item) {
   const rows = ensureRows(w, item);
@@ -265,11 +271,7 @@ function toggleRow(w, item, rowId) {
   const goR = ex.uni && row.side === 'L' && next && next.side === 'R';
   if (!goR && ex.rest) startRest(ex.rest, ex.name, ex.id);
   UI.selRow = next ? next.id : null;
-  if (!next) {
-    const nxt = w.items.findIndex((it, i) => i > w.cur && !itemDone(w, it));
-    const any = nxt >= 0 ? nxt : w.items.findIndex((it) => !itemDone(w, it));
-    if (any >= 0 && any !== w.cur) { w.cur = any; UI.selRow = null; UI.lastSet = null; toast(ex.name + ' done'); }
-  }
+  if (!next && typeof nextSheet === 'function') { UI.nextFrom = w.items.indexOf(item); UI.sheet = 'next'; }
   save(); render();
 }
 function addRow(w, item) {
@@ -315,9 +317,14 @@ function finishWorkout() {
     ask('No set logged. Discard this session?', 'Discard', () => { D.workouts = D.workouts.filter((x) => x.id !== w.id); D.active = null; save(); stopRest(); releaseWake(); go('today'); });
     return;
   }
+  const sp = sessionPct(w);
+  if (sp.done < sp.tot && typeof whySheet === 'function') {
+    ask(`Finish with ${sp.done} of ${sp.tot} sets done?`, 'Finish', () => { closeWorkout(w, true); UI.whyW = w.id; UI.whyPick = null; UI.whyMsg = null; UI.whyNote = ''; UI.sheet = 'why'; render(); });
+    return;
+  }
   ask('Finish and save this session?', 'Finish', () => closeWorkout(w));
 }
-function closeWorkout(w) {
+function closeWorkout(w, quiet) {
   w.end = Date.now(); w.upd = w.end; w.pct = sessionPct(w).pct; D.active = null;
   if (w.planId) {
     const plan = D.plans[w.planId]; const pr = progOf(w.planId);
@@ -330,7 +337,9 @@ function closeWorkout(w) {
       toast('Week complete — on to ' + cycleOf(plan).key + ' · week ' + pr.week);
     } else toast('Session saved');
   } else toast('Session saved');
-  save(); stopRest(); releaseWake(); if (typeof showSummary === 'function') POP.open = true; go('today');
+  save(); stopRest(); releaseWake();
+  if (quiet) { go('today'); return; }
+  if (typeof showSummary === 'function') POP.open = true; go('today');
   if (typeof showSummary === 'function') showSummary(w);
 }
 
@@ -453,6 +462,7 @@ function viewToday() {
   const ran = !!D.runs[iso()];
   const recent = D.workouts.filter((x) => x.end).slice(-3).reverse();
   return `<header class="top"><div><span class="muted sm">${longDate(iso())}</span><h1>Today</h1></div><div class="row">${typeof syncChip === 'function' ? syncChip() : ''}${typeof accountButton === 'function' ? accountButton() : ''}<button class="icon-btn" aria-label="More options" data-act="sheet" data-v="more">${svg('more')}</button></div></header>
+  ${typeof motdHTML === 'function' ? motdHTML() : ''}
   <div class="today-grid">
     <div class="col">
       <section class="card">
@@ -559,7 +569,7 @@ function viewSession() {
     const head = it.block !== lastBlock ? `<span class="eyebrow blk">${esc((it.block || '').toUpperCase())}</span>` : ''; lastBlock = it.block;
     const selOn = UI.selMode && UI.selItems.includes(i);
     return `${head}<button class="ex-row${i === w.cur && !UI.selMode ? ' on' : ''}${d ? ' done' : ''}${UI.selMode ? ' selecting' : ''}${selOn ? ' picked' : ''}" data-act="${UI.selMode ? 'selex' : 'cur'}" data-i="${i}"${UI.selMode ? ` role="checkbox" aria-checked="${selOn}"` : ''}>
-      ${UI.selMode ? `<span class="selbox">${selOn ? svg('check', 14, 3) : ''}</span>` : `<span class="tick">${d ? svg('check', 14, 3) : ''}</span>`}<i class="dot" style="background:${CATS[ex.cat]}"></i>
+      ${UI.selMode ? `<span class="selbox">${selOn ? svg('check', 14, 3) : ''}</span>` : ringHTML(c, CATS[ex.cat], d)}
       <span class="ex-name"><b>${esc(ex.name)}</b><small>${esc(prescShort(it.presc, ex) || TYPES[ex.type])}</small></span>
       <span class="muted sm">${c.n}/${c.total}</span></button>`;
   }).join('');

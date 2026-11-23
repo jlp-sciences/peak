@@ -13,7 +13,7 @@ function historyListHTML() {
     ${list.map((w) => { const exs = [...new Set(w.sets.map((s) => s.exId))]; const cats = [...new Set(exs.map((id) => D.exercises[id] && D.exercises[id].cat).filter(Boolean))];
       return `<button class="hist-row" data-act="hist-open" data-v="${w.id}"><span class="hr-date"><b>${dOf(w.date).getDate()}</b><small>${SHORT_M[dOf(w.date).getMonth()]}</small></span>
         <span class="grow"><b>${esc(w.name.split(' — ')[0])}</b><small>${w.pct != null ? w.pct + ' % · ' : ''}${w.sets.length} sets${durOf(w) ? ' · ' + durOf(w) : ''} · ${exs.length} exercises</small>
-        <span class="cal-dots">${cats.slice(0, 6).map((c) => `<i class="dot sm" style="background:${CATS[c]}"></i>`).join('')}</span>${w.note ? `<small class="hr-note">“${esc(w.note)}”</small>` : ''}</span>${svg('chev', 16)}</button>`; }).join('')}`).join('');
+        <span class="cal-dots">${cats.slice(0, 6).map((c) => `<i class="dot sm" style="background:${CATS[c]}"></i>`).join('')}</span>${w.note ? `<small class="hr-note">“${esc(w.note)}”</small>` : ''}${w.reason ? `<small class="hr-why">Stopped early · ${esc(typeof whyLabel === 'function' ? whyLabel(w.reason) : w.reason)}${w.reasonNote ? ' — ' + esc(w.reasonNote) : ''}</small>` : ''}</span>${svg('chev', 16)}</button>`; }).join('')}`).join('');
 }
 
 /* ---------- one session ---------- */
@@ -31,6 +31,7 @@ function workoutView() {
   return `<header class="top"><button class="icon-btn" aria-label="Back to history" data-act="go" data-v="calendar">${svg('back')}</button>
       <div class="grow"><div class="strong">${esc(w.name.split(' — ')[0])}</div><span class="muted sm">${longDate(w.date)}${w.pct != null ? ' · ' + w.pct + ' %' : ''} · ${w.sets.length} sets${durOf(w) ? ' · ' + durOf(w) : ''}</span></div>
       <button class="btn small outline" data-act="sheet" data-v="w-edit">Edit</button></header>
+    ${w.reason ? `<section class="card why-card"><span class="eyebrow">STOPPED EARLY · ${w.pct != null ? w.pct + ' %' : ''}</span><p><b>${esc(typeof whyLabel === 'function' ? whyLabel(w.reason) : w.reason)}</b>${w.reasonNote ? ' — ' + esc(w.reasonNote) : ''}</p></section>` : ''}
     <section class="card"><label class="field">Session note<textarea rows="2" data-note="wsession" data-w="${w.id}" placeholder="How did it go? Optional">${esc(w.note || '')}</textarea></label></section>
     ${blocks || '<section class="card"><p class="muted">No set in this session.</p></section>'}
     <button class="btn outline" data-act="hist-addex">${svg('plus', 18, 2)} Add an exercise</button>

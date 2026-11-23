@@ -561,3 +561,19 @@ button.rt { background: none; border: 0; color: inherit; font: inherit; padding:
 .reach-row small { line-height: 1.35; }
 .tr-tip p { margin: 6px 0 0; line-height: 1.45; }
 .reach-row > svg { width: 40px; height: 48px; flex: none; }
+/* v1.7 — rings, next sheet, why, motivation */
+.ex-row .ring { width: 26px; height: 26px; flex-shrink: 0; display: inline-flex; }
+.ex-row .ring svg { transition: none; }
+.ex-row .ring circle:nth-child(2) { transition: stroke-dasharray .35s ease; }
+.menu-list.two { grid-template-columns: 1fr 1fr; }
+.field select { width: 100%; padding: 12px 14px; border-radius: 12px; border: 1px solid var(--line); background: var(--bg2); color: var(--text); font: inherit; font-size: 16px; }
+.motd { margin-bottom: 14px; background: linear-gradient(135deg, rgba(94,162,255,.12), rgba(255,159,67,.10)), var(--card); }
+.motd p { margin: 6px 0 0; font-size: 17px; line-height: 1.4; font-weight: 600; }
+.why-opts { display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 0; }
+.chip-btn { padding: 10px 14px; border-radius: 999px; border: 1px solid var(--line); background: var(--bg2); color: var(--text); font: inherit; font-size: 15px; min-height: 44px; }
+.chip-btn.on { background: var(--text); color: var(--bg); border-color: var(--text); }
+.why-done { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 10px; padding: 6px 0; }
+.why-ic { width: 56px; height: 56px; border-radius: 50%; display: grid; place-items: center; background: rgba(52,211,153,.16); color: #34D399; }
+.why-msg { font-size: 18px; line-height: 1.45; font-weight: 600; margin: 4px 0 10px; }
+.hr-why { display: block; color: #FBBF24; }
+.why-card p { margin: 6px 0 0; }
