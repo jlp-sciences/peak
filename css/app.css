@@ -529,3 +529,21 @@ button.recent { width: 100%; background: none; border: 0; border-top: 1px solid 
 .menu-list { display: grid; gap: 10px; margin-top: 14px; }
 .menu-list .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
 .row + button.recent { border-top: 0; }
+/* v1.3 — trophy details, manual timer */
+button.trophy { width: 100%; text-align: left; font: inherit; color: inherit; cursor: pointer; }
+button.rt { background: none; border: 0; color: inherit; font: inherit; padding: 4px 0; cursor: pointer; }
+.recent-tro { grid-template-columns: repeat(5, 1fr); }
+.tr-head { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 4px; margin: 4px 0 12px; }
+.tr-head .pop-medal { position: relative; width: 140px; height: 140px; display: grid; place-items: center; margin-bottom: 6px; }
+.tr-head h2 { margin: 0; }
+.tr-head.locked .pop-medal { opacity: .8; }
+.tr-prog .tbar { margin: 10px 0 4px; }
+.tr-levels, .tr-left { list-style: none; margin: 8px 0 0; padding: 0; }
+.tr-levels li, .tr-left li { display: flex; align-items: center; gap: 10px; min-height: 38px; border-top: 1px solid var(--card2); font-size: 14px; }
+.tr-levels li:first-child, .tr-left li:first-child { border-top: 0; }
+.tr-levels li:not(.got) { color: var(--muted); }
+.lv-dot { width: 14px; height: 14px; border-radius: 50%; border: 2px solid; flex: none; }
+.tr-left li { justify-content: space-between; }
+.linkish { background: none; border: 0; color: inherit; font: inherit; padding: 0; text-align: left; text-decoration: underline; text-decoration-color: var(--line); }
+.timer-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 12px; }
+.center { text-align: center; }

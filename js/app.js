@@ -1,7 +1,7 @@
 /* Peak — app logic (vanilla JS, no build step). */
 'use strict';
 
-const APP_VERSION = '1.2.0';
+const APP_VERSION = '1.3.0';
 const STORE_KEY = 'peak.v1';
 
 /* ---------- helpers ---------- */
@@ -560,6 +560,7 @@ function viewSession() {
   }).join('');
   return `<header class="top sess-top"><button class="icon-btn" aria-label="Back to today" data-act="go" data-v="today">${svg('back')}</button>
       <div class="grow"><div class="strong">${esc(w.name.split(' — ')[0])}</div><span class="muted sm">${w.late && typeof shortDate === 'function' ? 'Logged for ' + shortDate(w.date) + ' · ' : ''}${w.planId ? 'Cycle ' + esc(w.cycle) + ' · Week ' + w.week + (w.light ? ' · light' : '') + (w.match ? ' · light version' : '') + ' · ' : ''}${mins} min</span></div>
+      <button class="icon-btn" aria-label="Start a rest timer" data-act="sheet" data-v="timer">${svg('timer', 21, 2)}</button>
       <button class="btn small outline" data-act="finish">Finish</button></header>
     <div class="progress"><div class="row between muted sm"><span><b class="pct">${sp.pct} %</b> · ${sp.done} of ${sp.tot} sets</span><span>${doneN}/${w.items.length} exercises</span></div><div class="bar"><i style="width:${sp.pct}%"></i></div>${w.note || UI.noteOpen === 'session' ? `<textarea class="sess-note" rows="1" data-note="session" placeholder="Session note (optional)">${esc(w.note || '')}</textarea>` : '<button class="link" data-act="note-open" data-v="session">+ Session note</button>'}</div>
     <div class="sess-grid">

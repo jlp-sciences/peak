@@ -358,9 +358,9 @@ function trophyCard(x) {
   const MC = ['#D9935E', '#D3DAE3', '#F5C95A', '#8FE6DC', '#B9D0FF'];
   const dots = x.max > 1 && x.max <= 5 ? `<span class="tdots">${Array.from({ length: x.max }, (_, i) => `<i style="${i < x.level ? 'background:' + MED[metalOf(i, x.max)][0] : ''}"></i>`).join('')}</span>` : x.max > 5 ? `<span class="muted sm">${x.level}/${x.max}</span>` : '';
   const na = x.applies === false;
-  return `<div class="trophy${locked ? ' locked' : ''}${t.fam === 'ultimate' ? ' ultimate' : ''}${na ? ' na' : ''}"><span class="medal-wrap">${art}</span>
+  return `<button class="trophy${locked ? ' locked' : ''}${t.fam === 'ultimate' ? ' ultimate' : ''}${na ? ' na' : ''}" data-act="tr-open" data-v="${t.id}" aria-label="${secretHidden ? 'Secret trophy' : esc(t.name)}: details"><span class="medal-wrap">${art}</span>
     <span class="tbody"><b>${secretHidden ? '???' : esc(t.name)}</b><small>${secretHidden ? 'Secret trophy' : esc(na ? 'Set a weekly run goal to unlock' : t.cond)}</small>
-    ${secretHidden || na ? '' : `<span class="tbar"><i style="width:${pct}%;background:${col}"></i></span><span class="trow"><span class="muted sm">${metal && !locked ? metal + ' · ' : ''}${nextTxt}</span>${dots}</span>`}</span></div>`;
+    ${secretHidden || na ? '' : `<span class="tbar"><i style="width:${pct}%;background:${col}"></i></span><span class="trow"><span class="muted sm">${metal && !locked ? metal + ' · ' : ''}${nextTxt}</span>${dots}</span>`}</span></button>`;
 }
 function progressView() {
   const A = awards(); const e = A.cur.era; const r = A.cur.res;
@@ -369,7 +369,7 @@ function progressView() {
   const unlocked = A.list.reduce((n, x) => n + (x.level > 0 ? 1 : 0), 0);
   let body = '';
   if (seg === 'overview') {
-    const recent = A.list.flatMap((x) => x.dates.map((d, i) => ({ x, d, lvl: i + 1 }))).sort((a, b) => b.d.localeCompare(a.d)).slice(0, 4);
+    const recent = A.list.flatMap((x) => x.dates.map((d, i) => ({ x, d, lvl: i + 1 }))).sort((a, b) => b.d.localeCompare(a.d)).slice(0, 5);
     body = `<div class="prog-grid"><div class="col">
       <section class="card"><div class="row between"><span class="eyebrow">YOUR GOALS</span><button class="btn small outline" data-act="sheet" data-v="goals">Edit goals</button></div>
         <div class="goals-row">${ring(r.now.count, e.weekly, 84, 'This week', e.weekly + ' sessions')}${ring(r.monthNow.count, e.monthly, 84, MONTHS[new Date().getMonth()], e.monthly + ' sessions')}${e.runs ? ring(r.now.runs, e.runs, 84, 'Runs', 'this week') : ''}</div>
@@ -380,7 +380,7 @@ function progressView() {
     </div><div class="col">
       ${typeof climbCardHTML === 'function' ? climbCardHTML(true) : ''}
       <section class="card"><div class="row between"><span class="eyebrow">TROPHIES · ${unlocked}/70</span><button class="link" data-act="pr-tab" data-v="trophies">All ›</button></div>
-        ${recent.length ? `<div class="recent-tro">${recent.map(({ x, d, lvl }) => `<div class="rt">${medalSVG(x.t.fam === 'ultimate' ? 'Ultimate' : metalOf(lvl - 1, x.max), x.t.fam === 'ultimate' ? 'crown' : iconOf(x.t), 44)}<b>${esc(x.t.name)}</b><small>${shortDate(d)}</small></div>`).join('')}</div>` : '<p class="muted sm">Finish a session to unlock your first trophy.</p>'}</section>
+        ${recent.length ? `<div class="recent-tro">${recent.map(({ x, d, lvl }) => `<button class="rt" data-act="tr-open" data-v="${x.t.id}">${medalSVG(x.t.fam === 'ultimate' ? 'Ultimate' : metalOf(lvl - 1, x.max), x.t.fam === 'ultimate' ? 'crown' : iconOf(x.t), 44)}<b>${esc(x.t.name)}</b><small>${shortDate(d)}</small></button>`).join('')}</div>` : '<p class="muted sm">Finish a session to unlock your first trophy.</p>'}</section>
       ${trophyCard(A.list.find((x) => x.t.fam === 'ultimate'))}
     </div></div>`;
   } else if (seg === 'trophies') {
@@ -443,13 +443,60 @@ function confettiHTML() {
 /* ---------- hooks ---------- */
 const EXTRA_VIEWS = { progress: progressView };
 const _extraSheetAwards = typeof extraSheet === 'function' ? extraSheet : () => '';
+const SECRET_HINTS = {
+  'early-bird': 'Some people train before the sun is up.', 'night-owl': 'Some people train when everyone else is asleep.',
+  'fresh-start': 'A new year deserves a new start.', 'weekend-warrior': 'Rest day? Not for everyone.',
+  'seven-days': 'A full week, without a single day off.', 'plan-b': 'When the machine is taken, adapt.',
+  'steady-hands': 'Not too easy, not too hard — again and again.', 'unbreakable': 'A whole year, no safety net.',
+  'triple-crown': 'Some days, everything goes up at once.', 'perfect-mirror': 'Left and right, perfectly balanced.',
+  'leap-day': 'A day that only comes every four years.', 'full-house': 'Every box ticked, even the optional ones.'
+};
+function trophySheet() {
+  const A = awards(); const x = A.list.find((y) => y.t.id === UI.trId); if (!x) return '';
+  const t = x.t; const locked = x.level === 0; const secretHidden = t.fam === 'secret' && locked;
+  const metal = t.fam === 'ultimate' ? (locked ? 'Locked' : 'Ultimate') : x.level ? metalOf(x.level - 1, x.max) : null;
+  const art = secretHidden ? medalSVG('Secret', null, 120) : t.fam === 'ultimate' ? medalSVG(locked ? 'Locked' : 'Ultimate', 'crown', 120) : locked ? medalSVG('Locked', 'lock', 120) : medalSVG(metal, iconOf(t), 120);
+  const head = `<div class="tr-head${locked ? ' locked' : ''}"><div class="pop-medal">${locked ? '' : '<span class="rays"></span>'}${art}</div>
+    <span class="eyebrow">${esc(t.fam === 'goal' ? 'GOAL TROPHY' : t.fam === 'secret' ? 'SECRET TROPHY' : t.fam === 'ultimate' ? 'ULTIMATE TROPHY' : String(t.group).toUpperCase())}</span>
+    <h2>${secretHidden ? '???' : esc(t.name)}</h2><p class="soft">${secretHidden ? esc(SECRET_HINTS[t.id] || 'Keep training — it will reveal itself.') : esc(t.cond)}</p></div>`;
+  if (secretHidden) return head + '<p class="muted sm center">The condition stays hidden until you unlock it.</p>';
+  let era = '';
+  if (t.fam === 'goal') {
+    const e = A.cur.era; era = `<p class="muted sm">Current goals since ${longDate(e.from)} · ${e.weekly}/week · ${e.monthly}/month${e.runs ? ' · ' + e.runs + ' run' + (e.runs > 1 ? 's' : '') + '/week' : ''}${x.bestEver > x.level ? ` · best with earlier goals: level ${x.bestEver}` : ''}</p>`;
+    if (x.applies === false) era += '<p class="muted sm">Set a weekly run goal to unlock this trophy.</p>';
+  }
+  const pct = x.level < x.max ? Math.max(0, Math.min(100, 100 * x.value / x.next)) : 100;
+  const prog = x.level < x.max
+    ? `<section class="card tr-prog"><div class="row between"><span class="eyebrow">NEXT · ${esc(t.fam === 'ultimate' ? 'Ultimate' : metalOf(x.level, x.max))}</span><b>${t.fmt(Math.min(x.value, x.next))} / ${t.fmt(x.next)}</b></div><span class="tbar"><i style="width:${pct}%;background:${MED[t.fam === 'ultimate' ? 'Ultimate' : metalOf(x.level, x.max)][0]}"></i></span><small class="muted">${Math.round(pct)} %</small></section>`
+    : `<section class="card tr-prog"><b>Highest level reached 🎉</b></section>`;
+  let levels = '';
+  if (t.fam !== 'ultimate') {
+    const many = x.max > 8; const show = many ? x.tiers.map((v, i) => i).filter((i) => i < x.level + 2 && (i >= x.level - 3 || i === 0)) : x.tiers.map((v, i) => i);
+    levels = `<section class="card"><span class="eyebrow">LEVELS · ${x.level}/${x.max}</span><ul class="tr-levels">${show.map((i) => { const m = metalOf(i, x.max); const got = i < x.level;
+      return `<li class="${got ? 'got' : ''}"><span class="lv-dot" style="background:${got ? MED[m][0] : 'transparent'};border-color:${MED[m][0]}"></span><span class="grow">${m} · ${esc(t.fmt(x.tiers[i]))}</span><span class="muted sm">${got ? (x.dates[i] ? longDate(x.dates[i]) : 'unlocked') : 'locked'}</span></li>`; }).join('')}</ul>${many && show.length < x.max ? `<p class="muted sm">${x.max} levels in total.</p>` : ''}</section>`;
+  } else {
+    const left = A.list.filter((y) => y.t.fam !== 'ultimate' && (y.t.fam === 'goal' ? y.bestEver < y.max : y.level < y.max));
+    levels = `<section class="card"><span class="eyebrow">STILL TO MAX · ${left.length}</span><ul class="tr-left">${left.map((y) => `<li><button class="linkish" data-act="tr-open" data-v="${y.t.id}">${y.t.fam === 'secret' && y.level === 0 ? '???' : esc(y.t.name)}</button><span class="muted sm">${y.t.fam === 'goal' ? y.bestEver : y.level}/${y.max}</span></li>`).join('')}</ul></section>`;
+  }
+  return head + era + prog + levels;
+}
+function timerSheet() {
+  const w = active(); const it = w && w.items[w.cur]; const ex = it && D.exercises[it.exId]; const def = ex && ex.rest;
+  const opts = [30, 60, 90, 120, 180]; if (def && !opts.includes(def)) opts.push(def); opts.sort((a, b) => a - b);
+  return `<h2>Rest timer</h2><p class="muted sm">${ex ? esc(ex.name) + ' · default ' + fmtT(def || 0) : 'Pick a duration'}</p>
+    <div class="timer-grid">${opts.map((v) => `<button class="btn ${v === def ? 'primary' : 'outline'} big" data-act="timer-go" data-v="${v}">${fmtT(v)}</button>`).join('')}</div>`;
+}
 extraSheet = function (name) { // eslint-disable-line no-global-assign
+  if (name === 'trophy') return trophySheet();
+  if (name === 'timer') return timerSheet();
   if (name === 'goals') return goalsSheet();
   return _extraSheetAwards(name);
 };
 document.addEventListener('click', (ev) => {
   const b = ev.target.closest('[data-act]'); if (!b) return;
   const a = b.dataset.act;
+  if (a === 'tr-open') { UI.trId = b.dataset.v; UI.sheet = 'trophy'; render(); const sh = document.querySelector('.sheet'); if (sh) sh.scrollTop = 0; return; }
+  if (a === 'timer-go') { const w = active(); const it = w && w.items[w.cur]; const ex = it && D.exercises[it.exId]; UI.sheet = null; render(); startRest(Number(b.dataset.v), ex ? ex.name : 'Rest', ex ? ex.id : null); return; }
   if (a === 'tr-tab') { UI.trTab = b.dataset.v; render(); }
   if (a === 'pr-tab') { UI.prTab = b.dataset.v; render(); window.scrollTo(0, 0); }
   if (a === 'goal-step') { const k = b.dataset.k; const lim = { weekly: [1, 7], monthly: [1, 31], runs: [0, 7] }[k]; const g = UI.goalDraft; g[k] = Math.max(lim[0], Math.min(lim[1], (g[k] || 0) + Number(b.dataset.d))); render(); }
