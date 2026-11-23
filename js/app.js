@@ -1,7 +1,7 @@
 /* Peak — app logic (vanilla JS, no build step). */
 'use strict';
 
-const APP_VERSION = '0.7.0';
+const APP_VERSION = '0.8.0';
 const STORE_KEY = 'peak.v1';
 
 /* ---------- helpers ---------- */
@@ -52,6 +52,7 @@ function load() {
   SEED_EXERCISES.forEach((e) => { if (!D.exercises[e.id]) D.exercises[e.id] = JSON.parse(JSON.stringify(e)); });
   SEED_PLANS.forEach((p) => { if (!D.plans[p.id] && !(D.settings.removedPlans || []).includes(p.id)) { D.plans[p.id] = JSON.parse(JSON.stringify(p)); D.progress[p.id] = { cycle: 0, week: 1, done: {} }; } });
   if (!D.body) D.body = { measures: [], tests: [] };
+  if (!D.planned) D.planned = {};
   if (D.settings.goalWeight == null) D.settings.goalWeight = 76;
   Object.values(D.progress).forEach((pr) => { if (!pr.since) pr.since = iso(new Date(D.created || Date.now())); if (!pr.csince) pr.csince = pr.since; });
 }
@@ -171,7 +172,8 @@ const active = () => (D.active ? D.workouts.find((w) => w.id === D.active) : nul
 
 function startWorkout(planId, sessionId, opts) {
   if (active()) { go('session'); return; }
-  const w = { id: uid(), date: iso(), start: Date.now(), end: null, sets: [], cur: 0, free: !planId };
+  const w = { id: uid(), date: (opts && opts.date) || iso(), start: Date.now(), end: null, sets: [], cur: 0, free: !planId };
+  if (w.date !== iso()) w.late = true;
   if (planId) {
     const plan = D.plans[planId]; const s = plan.sessions.find((x) => x.id === sessionId); const pr = progOf(planId);
     Object.assign(w, { planId, sessionId, name: s.name + ' — ' + s.title, cycle: cycleOf(plan).key, week: pr.week, light: isLightWeek(plan), match: !!(opts && opts.match), items: buildItems(plan, s, opts) });
@@ -417,6 +419,8 @@ function viewToday() {
   if (w) {
     const doneN = w.items.filter((it) => itemDone(w, it)).length;
     nextHTML = `<section class="card hero"><span class="eyebrow">IN PROGRESS</span><h2>${esc(w.name)}</h2><p class="muted">${doneN} of ${w.items.length} exercises · ${w.sets.length} sets</p><button class="btn primary big" data-act="go" data-v="session">Resume session</button></section>`;
+  } else if (typeof plannedFor === 'function' && plannedFor(iso()).some((p) => !p.done)) {
+    nextHTML = plannedHero(plannedFor(iso()).filter((p) => !p.done));
   } else if (next) {
     const items = buildItems(plan, next, {});
     const lefty = items.filter((it) => D.exercises[it.exId].uni).length;
@@ -538,7 +542,7 @@ function viewSession() {
       <span class="muted sm">${c.n}/${c.total}</span></button>`;
   }).join('');
   return `<header class="top sess-top"><button class="icon-btn" aria-label="Back to today" data-act="go" data-v="today">${svg('back')}</button>
-      <div class="grow"><div class="strong">${esc(w.name.split(' — ')[0])}</div><span class="muted sm">${w.planId ? 'Cycle ' + esc(w.cycle) + ' · Week ' + w.week + (w.light ? ' · light' : '') + (w.match ? ' · light version' : '') + ' · ' : ''}${mins} min</span></div>
+      <div class="grow"><div class="strong">${esc(w.name.split(' — ')[0])}</div><span class="muted sm">${w.late && typeof shortDate === 'function' ? 'Logged for ' + shortDate(w.date) + ' · ' : ''}${w.planId ? 'Cycle ' + esc(w.cycle) + ' · Week ' + w.week + (w.light ? ' · light' : '') + (w.match ? ' · light version' : '') + ' · ' : ''}${mins} min</span></div>
       <button class="btn small outline" data-act="finish">Finish</button></header>
     <div class="progress"><div class="row between muted sm"><span><b class="pct">${sp.pct} %</b> · ${sp.done} of ${sp.tot} sets</span><span>${doneN}/${w.items.length} exercises</span></div><div class="bar"><i style="width:${sp.pct}%"></i></div></div>
     <div class="sess-grid">
@@ -603,7 +607,7 @@ function sheetHTML() {
   } else if (UI.sheet === 'pick') {
     body = `<h2>Sessions of this week</h2>${plan.sessions.map((s) => `<button class="list-btn" data-act="start" data-s="${s.id}"><span><b>${esc(s.name)} — ${esc(s.title)}</b><small>${s.required ? 'Required' : 'Optional'}${pr.done[s.id] ? ' · done ✓' : ''}</small></span></button>`).join('')}`;
   } else if (UI.sheet === 'match') {
-    const s = plan.sessions.find((x) => x.id === UI.pending);
+    const s = (D.plans[UI.pendingPlan] || plan).sessions.find((x) => x.id === UI.pending);
     body = `<h2>${esc(s.name)} — ${esc(s.title)}</h2><label class="toggle"><span><b>Light version ${infoI('light')}</b><small>Fewer sets, some exercises left out</small></span><input type="checkbox" id="match-cb"></label>${infoPop('light')}
       <button class="btn primary big" data-act="start-confirm">Start</button>`;
   } else if (UI.sheet === 'plans') {
@@ -677,13 +681,14 @@ document.addEventListener('click', (ev) => {
     case 'sheet': UI.sheet = b.dataset.v; if (b.dataset.v === 'picker') { UI.pq = ''; UI.pcat = null; } render(); break;
     case 'close': if (UI.pickPlan && UI.pe) { const k = UI.pickPlan.kind; UI.pickPlan = null; UI.sheet = k === 'change' ? 'pe-item' : null; render(); break; } UI.sheet = null; UI.replaceMode = false; render(); break;
     case 'start': {
-      const s = activePlan().sessions.find((x) => x.id === b.dataset.s);
-      if (s && s.matchable) { UI.pending = s.id; UI.sheet = 'match'; render(); }
-      else startWorkout(activePlan().id, b.dataset.s, {});
+      const pid = b.dataset.plan || activePlan().id; const date = b.dataset.date || null;
+      const s = D.plans[pid] && D.plans[pid].sessions.find((x) => x.id === b.dataset.s);
+      if (s && s.matchable) { UI.pending = s.id; UI.pendingPlan = pid; UI.pendingDate = date; UI.sheet = 'match'; render(); }
+      else startWorkout(pid, b.dataset.s, { date });
       break;
     }
-    case 'start-confirm': { const m = $('#match-cb'); startWorkout(activePlan().id, UI.pending, { match: !!(m && m.checked) }); break; }
-    case 'free': startWorkout(null, null, {}); break;
+    case 'start-confirm': { const m = $('#match-cb'); startWorkout(UI.pendingPlan || activePlan().id, UI.pending, { match: !!(m && m.checked), date: UI.pendingDate || null }); UI.pendingPlan = null; UI.pendingDate = null; break; }
+    case 'free': startWorkout(null, null, { date: b.dataset.date || null }); break;
     case 'run': { toggleRun(iso()); save(); render(); break; }
     case 'setplan': D.settings.activePlan = b.dataset.v; D.settings.upd = Date.now(); save(); UI.sheet = null; render(); break;
     case 'exinfo': UI.exId = b.dataset.v; UI.exTab = (typeof GUIDES !== 'undefined' && GUIDES[UI.exId]) ? 'guide' : 'history'; UI.sheet = 'exinfo'; render(); break;

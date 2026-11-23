@@ -319,3 +319,15 @@ input, textarea, select, [contenteditable] { -webkit-touch-callout: default; -we
 .selbar { z-index: 31; }
 body:has(#rest:not([hidden])) .selbar { bottom: calc(104px + env(safe-area-inset-bottom)); }
 .sel-spacer { height: 180px; }
+
+/* v0.8 — planned days */
+.ring { display: inline-block; width: 8px; height: 8px; border-radius: 50%; border: 1.5px solid var(--text); box-sizing: border-box; vertical-align: 0; }
+.ring.past { border-color: var(--muted); }
+.ring.pop { animation: ring-pop .45s cubic-bezier(.3,1.6,.5,1); }
+@keyframes ring-pop { 0% { transform: scale(0); } 70% { transform: scale(1.6); } 100% { transform: scale(1); } }
+.plan-list { display: flex; flex-direction: column; gap: 6px; margin: 4px 0 8px; }
+.plan-row { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 12px; background: var(--bg2); }
+.plan-row b { font-size: 14px; }
+.tag.ok { color: #4ADE80; border-color: rgba(74,222,128,.4); }
+.planned-hero .eyebrow { display: inline-flex; align-items: center; gap: 6px; }
+.cal-day.sel .ring { border-color: var(--bg); }

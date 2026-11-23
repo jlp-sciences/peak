@@ -52,7 +52,8 @@ function calendarView() {
     const dt = new Date(y, m - 1, 1 - offset + i); const k = iso(dt); const inM = dt.getMonth() === m - 1;
     const cats = []; (byDate[k] || []).forEach((w) => w.sets.forEach((s) => { const c = D.exercises[s.exId] && D.exercises[s.exId].cat; if (c && !cats.includes(c)) cats.push(c); }));
     const cls = ['cal-day', inM ? '' : 'out', k === today ? 'today' : '', k === UI.calSel ? 'sel' : ''].join(' ');
-    cells.push(`<button class="${cls}" data-act="cal-day" data-d="${k}" aria-label="${longDate(k)}${byDate[k] ? ', ' + byDate[k].length + ' session' : ''}${D.runs[k] ? ', run' : ''}"><span>${dt.getDate()}</span><span class="cal-dots">${cats.slice(0, 5).map((c) => `<i class="dot sm" style="background:${CATS[c]}"></i>`).join('')}</span>${D.runs[k] ? `<span class="cal-run">${svg('run', 16, 2.2)}</span>` : ''}</button>`);
+    const pl = plannedFor(k).filter((p) => !p.done);
+    cells.push(`<button class="${cls}" data-act="cal-day" data-d="${k}" aria-label="${longDate(k)}${byDate[k] ? ', ' + byDate[k].length + ' session' : ''}${pl.length ? ', ' + pl.length + ' planned' : ''}${D.runs[k] ? ', run' : ''}"><span>${dt.getDate()}</span><span class="cal-dots">${cats.slice(0, 5).map((c) => `<i class="dot sm" style="background:${CATS[c]}"></i>`).join('')}${pl.length ? `<i class="ring${k < today ? ' past' : ''}${k === UI.calPop ? ' pop' : ''}"></i>` : ''}</span>${D.runs[k] ? `<span class="cal-run">${svg('run', 16, 2.2)}</span>` : ''}</button>`);
   }
   const sel = UI.calSel; const ws = byDate[sel] || []; const ran = !!D.runs[sel];
   const detail = ws.map((w) => {
@@ -68,11 +69,12 @@ function calendarView() {
       <div class="row between"><button class="icon-btn" aria-label="Previous month" data-act="cal-month" data-d="-1">${svg('back')}</button><span class="strong">${MONTHS[m - 1]} ${y}</span><button class="icon-btn flip" aria-label="Next month" data-act="cal-month" data-d="1">${svg('back')}</button></div>
       <div class="cal-head">${['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((d) => `<span>${d}</span>`).join('')}</div>
       <div class="cal-grid">${cells.join('')}</div>
-      <div class="legend"><span><i class="dot sm" style="background:var(--soft)"></i> Categories trained</span><span>${svg('run', 16, 2)} Run</span></div>
+      <div class="legend"><span><i class="dot sm" style="background:var(--soft)"></i> Categories trained</span><span><i class="ring"></i> Planned</span><span>${svg('run', 16, 2)} Run</span></div>
     </section>
     <section class="card">
       <span class="eyebrow">${esc(longDate(sel).toUpperCase())}${sel === today ? ' · TODAY' : ''}</span>
-      ${detail || '<p class="muted">No gym session this day.</p>'}
+      ${detail || (plannedFor(sel).length ? '' : '<p class="muted">No gym session this day.</p>')}
+      ${plannedDayHTML(sel)}
       <button class="btn ${ran ? 'primary' : 'outline'}" data-act="cal-run" aria-pressed="${ran}">${svg('run', 18, 2)} ${ran ? 'Ran this day ✓' : 'I ran this day'}</button>
     </section>
   </div>`;
