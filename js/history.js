@@ -58,10 +58,17 @@ function setNoteSheet() {
   return `<h2>Note for this set</h2><textarea id="sn-text" rows="3" class="note-area" placeholder="e.g. last rep was hard">${esc(row.note || '')}</textarea><button class="btn primary big" data-act="sn-save">Save note</button>`;
 }
 
+function wMenuSheet() {
+  const w = wById(UI.wId); if (!w) return '';
+  return `<h2>${esc(w.name.split(' — ')[0])}</h2><p class="muted sm">${longDate(w.date)} · ${w.sets.length} sets</p>
+    <div class="menu-list"><button class="btn outline big" data-act="hist-open" data-v="${w.id}">${svg('edit', 18, 2)} Edit</button>
+    <button class="btn danger-fill big" data-act="w-menu-del">${svg('trash', 18, 2)} Delete</button></div>`;
+}
 const _extraSheetHist = typeof extraSheet === 'function' ? extraSheet : () => '';
 extraSheet = function (name) { // eslint-disable-line no-global-assign
   if (name === 'hset') return setEditSheet();
   if (name === 'w-edit') return wEditSheet();
+  if (name === 'w-menu') return wMenuSheet();
   if (name === 'setnote') return setNoteSheet();
   return _extraSheetHist(name);
 };
@@ -92,7 +99,9 @@ document.addEventListener('click', (ev) => {
   const w = wById(UI.wId);
   switch (a) {
     case 'cal-mode': UI.calMode = b.dataset.v; render(); break;
-    case 'hist-open': UI.wId = b.dataset.v; go('workout'); window.scrollTo(0, 0); break;
+    case 'view-history': UI.calMode = 'list'; go('calendar'); window.scrollTo(0, 0); break;
+    case 'w-menu-del': if (!w) break; ask('Delete this session and its ' + w.sets.length + ' sets? This cannot be undone.', 'Delete', () => { D.workouts = D.workouts.filter((x) => x.id !== w.id); save(); UI.sheet = null; UI.wId = null; render(); toast('Session deleted'); }); break;
+    case 'hist-open': UI.wId = b.dataset.v; UI.sheet = null; go('workout'); window.scrollTo(0, 0); break;
     case 'hset': UI.hSet = b.dataset.v; UI.sheet = 'hset'; render(); break;
     case 'hs-side': { const s = w && w.sets.find((x) => x.id === UI.hSet); if (s) { s.side = b.dataset.v; document.querySelectorAll('.sheet .side').forEach((n) => n.classList.toggle('on', n === b)); } break; }
     case 'hs-save': {

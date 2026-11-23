@@ -522,3 +522,10 @@ body:has(#rest:not([hidden])) .selbar { bottom: calc(104px + env(safe-area-inset
 .add-today { width: 100%; }
 textarea { font: inherit; }
 .field textarea { width: 100%; padding: 12px 14px; border-radius: 12px; border: 1px solid var(--line); background: var(--bg2); font-size: 16px; color: var(--text); text-transform: none; letter-spacing: 0; resize: vertical; }
+/* v1.2 — Today: recent sessions menu */
+button.recent { width: 100%; background: none; border: 0; border-top: 1px solid var(--card2); color: inherit; text-align: left; padding: 0; font: inherit; font-size: 14px; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+.ghost-link { background: none; border: 0; color: var(--accent, #8FC0FF); font-weight: 600; padding: 0 4px; min-height: 32px; }
+.card .hint { margin: 8px 0 0; }
+.menu-list { display: grid; gap: 10px; margin-top: 14px; }
+.menu-list .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
+.row + button.recent { border-top: 0; }

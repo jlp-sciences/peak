@@ -1,7 +1,7 @@
 /* Peak — app logic (vanilla JS, no build step). */
 'use strict';
 
-const APP_VERSION = '1.1.0';
+const APP_VERSION = '1.2.0';
 const STORE_KEY = 'peak.v1';
 
 /* ---------- helpers ---------- */
@@ -33,6 +33,7 @@ const ICON = {
   down: '<path d="M6 9l6 6 6-6"/>',
   chev: '<path d="M9 6l6 6-6 6"/>',
   edit: '<path d="M4 20h4L19 9l-4-4L4 16z"/>',
+  trash: '<path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M10 11v6M14 11v6"/>',
   progress: '<path d="M3 20l6-10 4 6 2-3 6 7zM15 10V4l4 1.5-4 1.5"/>'
 };
 const svg = (name, size = 22, sw = 1.8) => `<svg aria-hidden="true" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${sw}" stroke-linecap="round" stroke-linejoin="round">${ICON[name]}</svg>`;
@@ -154,10 +155,17 @@ function suggestion(exId, presc, exceptId) {
     const w = Math.max(...ss.map((s) => s.w || 0));
     const top = ss.filter((s) => (s.w || 0) === w).map((s) => s.r || 0);
     const side = ex.uni ? 'L ' : '';
-    const repsTxt = side + top.join(', ');
-    if (rmax != null && top.every((r) => r >= rmax)) return { w: roundTo(w + inc, ex.equip), why: 'Top of range last time (' + repsTxt + ') → +' + fmtW(inc) + ' kg' };
-    if (rmin != null && top.some((r) => r < rmin)) return { w: roundTo(Math.max(0, w - inc), ex.equip), why: 'Below range last time (' + repsTxt + ') → −' + fmtW(inc) + ' kg' };
-    return { w, why: 'In range last time (' + repsTxt + ') → same weight, +1 rep' };
+    const repsTxt = side + (top.length > 4 && top.every((r) => r === top[0]) ? top[0] + ' (' + top.length + ' sets)' : top.length > 4 ? top.slice(0, 4).join(', ') + '…' : top.join(', '));
+    // how the heaviest sets felt: the most frequent answer (ties → the more cautious one)
+    const fc = { easy: 0, good: 0, hard: 0 }; ss.filter((s) => (s.w || 0) === w && s.feel).forEach((s) => { fc[s.feel]++; });
+    const feel = ['hard', 'good', 'easy'].reduce((b, f) => (fc[f] > (b ? fc[b] : 0) ? f : b), null);
+    const zone = rmax != null && top.every((r) => r >= rmax) ? 'top' : rmin != null && top.some((r) => r < rmin) ? 'below' : rmin != null || rmax != null ? 'in' : 'none';
+    const TABLE = { top: { easy: 1, good: 1, hard: 0, none: 1 }, in: { easy: 1, good: 0, hard: 0, none: 0 }, below: { easy: 0, good: -1, hard: -1, none: -1 }, none: { easy: 1, good: 0, hard: 0, none: 0 } };
+    const step = TABLE[zone][feel || 'none'];
+    const nw = roundTo(Math.max(0, w + step * inc), ex.equip);
+    const lastTxt = 'Last time ' + (ex.type === 'bwkg' ? (w ? 'BW+' + fmtW(w) : 'BW') : fmtW(w) + ' kg') + (top.some((r) => r) ? ' × ' + repsTxt : '') + (zone === 'top' ? ' (top of range)' : zone === 'below' ? ' (below range)' : '') + (feel ? ' · felt ' + feel : '');
+    const action = step > 0 ? '+' + fmtW(inc) + ' kg' : step < 0 ? '−' + fmtW(inc) + ' kg' : 'same weight' + ((zone === 'in' || zone === 'none') && feel !== 'hard' ? ', +1 rep' : '');
+    return { w: nw, why: lastTxt + ' → ' + action };
   }
   if (ex.ref && ex.ref.w != null) {
     let w = roundTo(ex.ref.w, ex.equip);
@@ -243,7 +251,7 @@ function toggleRow(w, item, rowId) {
     save(); render(); return;
   }
   row.done = true; writeSet(w, ex, row);
-  UI.lastSet = (row.side !== 'R' && ['wr', 'bwkg', 'wd', 'wt'].includes(ex.type)) ? row.id : null;
+  UI.lastSet = row.id;
   rows.forEach((x) => {
     if (x.done || x.touched) return;
     x.w = row.w; x.t = row.t; x.d = row.d;
@@ -271,6 +279,7 @@ function addRow(w, item) {
 function applyFeel(w, item, setId, feel) {
   const ex = D.exercises[item.exId]; const s = w.sets.find((x) => x.id === setId); if (!s) return;
   s.feel = s.feel === feel ? null : feel;
+  if (s.side === 'R' || !['wr', 'bwkg', 'wd', 'wt'].includes(ex.type)) { save(); render(); return; } // recorded only: the right side matches the left
   const inc = INC[ex.equip] || 1; const delta = s.feel === 'easy' ? inc : s.feel === 'hard' ? -inc : 0;
   ensureRows(w, item).forEach((x) => { if (!x.done && !x.touched && (!ex.uni || x.side === s.side || x.side === 'R')) x.w = roundTo(Math.max(0, (s.w || 0) + delta), ex.equip); });
   save(); render();
@@ -458,7 +467,7 @@ function viewToday() {
         <button class="btn ${ran ? 'filled' : 'outline'}" data-act="run" aria-pressed="${ran}">${svg('run', 18, 2)} ${ran ? 'Ran today ✓' : 'I ran today'}</button>
       </div>
       ${isLightWeek(plan) ? `<section class="card hero"><span class="eyebrow">WEEK ${plan.weeks} · TESTS</span><p class="soft">Light week: log your tests (jumps, 5-10-5, row max reps, arms, weight).</p><button class="btn primary" data-act="sheet" data-v="tests">Log tests</button></section>` : ''}
-      ${recent.length ? `<section class="card"><span class="eyebrow">RECENT</span>${recent.map((x) => `<div class="recent"><span>${esc(x.name.split(' — ')[0])}</span><span class="muted sm">${longDate(x.date)} · ${x.sets.length} sets</span></div>`).join('')}</section>` : ''}
+      ${recent.length ? `<section class="card"><div class="row between"><span class="eyebrow">RECENT</span><button class="btn small ghost-link" data-act="view-history">View history ›</button></div>${recent.map((x) => `<button class="recent" data-act="hist-open" data-v="${x.id}" data-lpw="${x.id}" aria-label="${esc(x.name)}, ${longDate(x.date)}. Long press to edit or delete."><span>${esc(x.name.split(' — ')[0])}</span><span class="muted sm">${longDate(x.date)} · ${x.sets.length} sets</span></button>`).join('')}<p class="muted sm hint">Long press a session to edit or delete it.</p></section>` : ''}
     </div>
   </div>`;
 }
@@ -568,7 +577,14 @@ const infoPop = (k) => `<p class="info-pop" data-info="${k}" hidden>${esc(INFO[k
 /* ---------- long-press selection of exercises in a session ---------- */
 const LP = { t: null, x: 0, y: 0, fired: 0 };
 document.addEventListener('pointerdown', (ev) => {
-  const row = ev.target.closest && ev.target.closest('.ex-row'); clearTimeout(LP.t);
+  clearTimeout(LP.t);
+  const rw = ev.target.closest && ev.target.closest('[data-lpw]');
+  if (rw && UI.view === 'today') {
+    LP.x = ev.clientX; LP.y = ev.clientY;
+    LP.t = setTimeout(() => { UI.wId = rw.dataset.lpw; UI.sheet = 'w-menu'; LP.fired = Date.now(); try { if (navigator.vibrate) navigator.vibrate(15); } catch (e) { /* no vibration */ } render(); }, 480);
+    return;
+  }
+  const row = ev.target.closest && ev.target.closest('.ex-row');
   if (!row || UI.view !== 'session' || UI.selMode) return;
   LP.x = ev.clientX; LP.y = ev.clientY;
   LP.t = setTimeout(() => {
@@ -709,7 +725,7 @@ document.addEventListener('click', (ev) => {
     case 'sel-cancel': UI.selMode = false; UI.selItems = []; render(); break;
     case 'sel-delete': if (w && UI.selItems.length) deleteSelected(w); break;
     case 'cur': if (w) { UI.noteOpen = null; w.cur = Number(b.dataset.i); UI.selRow = null; UI.lastSet = null; save(); render(); window.scrollTo(0, 0); } break;
-    case 'selrow': UI.selRow = b.dataset.id; render(); break;
+    case 'selrow': { UI.selRow = b.dataset.id; const fs = w && w.sets.find((x) => x.id === b.dataset.id); if (fs) UI.lastSet = fs.id; render(); break; }
     case 'check': if (w) toggleRow(w, w.items[w.cur], b.dataset.id); break;
     case 'addrow': if (w) addRow(w, w.items[w.cur]); break;
     case 'delrow': if (w) {
