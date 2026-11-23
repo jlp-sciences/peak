@@ -1,7 +1,7 @@
 /* Peak — app logic (vanilla JS, no build step). */
 'use strict';
 
-const APP_VERSION = '1.7.0';
+const APP_VERSION = '1.7.1';
 const STORE_KEY = 'peak.v1';
 
 /* ---------- helpers ---------- */

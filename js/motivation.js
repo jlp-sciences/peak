@@ -329,6 +329,26 @@ const ENCOURAGE = {
     'You did what today allowed. That’s enough.', 'Champions have unfinished sessions too. They just come back.', 'Shake it off. Next one’s yours.',
     'Be proud of what you did, not upset about what you didn’t.', 'Every set you logged today still counts towards your goals.', 'Progress isn’t a straight line. Keep going.']
 };
+const CHEERS = {
+  any: ['Amazing. Every single set.', 'You did it — 100 %!', 'Keep up the great work.', 'That’s how it’s done.', 'Nothing left on the table today.',
+    'Full session, full credit.', 'Every rep, every set. Proud of that.', 'Plan followed to the letter. Brilliant.', 'Done and dusted.', 'Textbook session.',
+    'That’s a 100 % kind of day.', 'All boxes ticked. Well played.', 'Another one in the bank.', 'Consistency looks good on you.', 'Clean sweep!',
+    'You showed up and finished strong.', 'Nailed it.', 'Complete. Strong. Yours.', 'This is what progress looks like.', 'Top work today.',
+    'Every set counted — and you counted them all.', 'Big respect. Full session.', 'You finished what you started.', 'Another brick in a strong wall.',
+    'Excellent. Now rest like a champion.', 'Solid from warm-up to stretch.', 'Perfect attendance for every set.', 'You make 100 % look normal.'],
+  pr: ['100 % and a new record. What a day.', 'Every set done and a record on top. Brilliant.', 'Full session plus a PR — that’s the dream.', 'Records fall when you finish what you start.'],
+  week: ['Weekly goal done — and not a set missed.', 'Goal reached for the week, with a perfect session to seal it.', 'That’s the week in the bag. Fully.'],
+  big: ['Big session, fully done. Rest well tonight.', 'Long one, and you finished every set. Huge.', 'That was a lot of work. All of it done.']
+};
+const CHEER_KEY = 'peak.cheer.v1';
+function pickCheer(w, prs, weekMet) {
+  const ctx = prs ? CHEERS.pr : weekMet ? CHEERS.week : (w.sets.length >= 35 || ((w.end || 0) - (w.start || 0)) > 80 * 60000) ? CHEERS.big : null;
+  let seen = []; try { seen = JSON.parse(localStorage.getItem(CHEER_KEY) || '[]'); } catch (e) { seen = []; }
+  const pool = ctx && Math.random() < 0.75 ? ctx : CHEERS.any; const fresh = pool.filter((m) => !seen.includes(m)); const list = fresh.length ? fresh : pool;
+  const msg = list[Math.floor(Math.random() * list.length)];
+  try { localStorage.setItem(CHEER_KEY, JSON.stringify(seen.concat(msg).slice(-15))); } catch (e) { /* storage unavailable */ }
+  return msg;
+}
 const ENC_KEY = 'peak.enc.v1';
 function pickEncourage(reason) {
   const pool = (ENCOURAGE[reason] || []).concat(ENCOURAGE.any); let seen = [];
@@ -344,10 +364,10 @@ function whySheet() {
   const w = D.workouts.find((x) => x.id === UI.whyW); if (!w) return '';
   if (UI.whyMsg) return `<div class="why-done"><span class="why-ic">${svg('check', 26, 3)}</span><h2>Session saved · ${w.pct || 0} %</h2><p class="why-msg">${esc(UI.whyMsg)}</p>
     <button class="btn primary big" data-act="why-ok">Continue</button></div>`;
-  return `<h2>Why couldn’t you finish today?</h2><p class="muted sm">${w.pct || 0} % done. This stays in your history so you can spot patterns.</p>
+  return `<h2>${UI.whyEdit ? 'Why didn’t you finish?' : 'Why couldn’t you finish today?'}</h2><p class="muted sm">${w.pct || 0} % done. This stays in your history so you can spot patterns.</p>
     <div class="why-opts">${WHY.map(([k, l]) => `<button class="chip-btn${UI.whyPick === k ? ' on' : ''}" aria-pressed="${UI.whyPick === k}" data-act="why-pick" data-v="${k}">${l}</button>`).join('')}</div>
     <label class="field">Anything to add? <small class="muted">(optional)</small><textarea id="why-note" rows="2" placeholder="e.g. right knee, meeting ran late…">${esc(UI.whyNote || '')}</textarea></label>
-    <button class="btn primary big" data-act="why-save"${UI.whyPick ? '' : ' disabled'}>Save</button>`;
+    <button class="btn primary big" data-act="why-save"${UI.whyPick ? '' : ' disabled'}>Save</button>${UI.whyEdit && w.reason ? '<button class="btn ghost big" data-act="why-clear">Remove the reason</button>' : ''}`;
 }
 function whyFinish() {
   const w = D.workouts.find((x) => x.id === UI.whyW); UI.sheet = null; UI.whyW = null; UI.whyMsg = null; UI.whyPick = null; UI.whyNote = '';
@@ -361,6 +381,14 @@ extraSheet = function (name) { // eslint-disable-line no-global-assign
 document.addEventListener('click', (ev) => {
   const b = ev.target.closest('[data-act]'); if (!b) return;
   const a = b.dataset.act;
+  if (a === 'why-edit') { const w = D.workouts.find((x) => x.id === b.dataset.v); if (!w) return; Object.assign(UI, { whyW: w.id, whyPick: w.reason || null, whyNote: w.reasonNote || '', whyMsg: null, whyEdit: true, sheet: 'why' }); render(); return; }
+  if (UI.whyEdit && UI.sheet === 'why' && (a === 'close' || a === 'why-save' || a === 'why-clear')) {
+    ev.stopImmediatePropagation(); const w = D.workouts.find((x) => x.id === UI.whyW);
+    if (w && a === 'why-save' && UI.whyPick) { const n = ($('#why-note') && $('#why-note').value || '').trim(); w.reason = UI.whyPick; if (n) w.reasonNote = n; else delete w.reasonNote; w.upd = Date.now(); save(); toast('Reason updated'); }
+    if (w && a === 'why-clear') { delete w.reason; delete w.reasonNote; w.upd = Date.now(); save(); toast('Reason removed'); }
+    if (a === 'why-save' && !UI.whyPick) return;
+    Object.assign(UI, { sheet: null, whyW: null, whyPick: null, whyNote: '', whyEdit: false }); render(); return;
+  }
   if (a === 'close' && UI.sheet === 'why') { ev.stopImmediatePropagation(); const w = D.workouts.find((x) => x.id === UI.whyW); if (w && !w.reason) { w.reason = 'none'; w.upd = Date.now(); save(); } whyFinish(); return; }
   if (a === 'why-pick') { const n = $('#why-note'); UI.whyNote = n ? n.value : ''; UI.whyPick = b.dataset.v; render(); return; }
   if (a === 'why-save') {

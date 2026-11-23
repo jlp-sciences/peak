@@ -615,7 +615,8 @@ function showSummary(w) {
   const R = 46, C = 2 * Math.PI * R;
   const gain = typeof climbGainFor === 'function' ? climbGainFor(w) : null;
   const host = document.createElement('div'); host.className = 'award-pop summary'; host.setAttribute('role', 'dialog'); host.setAttribute('aria-label', 'Session summary');
-  host.innerHTML = `<div class="award-card"><div class="award-face"><span class="eyebrow">SESSION SAVED</span><h2>${esc(w.name.split(' — ')[0])}</h2>
+  const cheer = pct >= 100 && typeof pickCheer === 'function' ? pickCheer(w, prs, justMet) : '';
+  host.innerHTML = `<div class="award-card"><div class="award-face"><span class="eyebrow">SESSION SAVED</span>${cheer ? `<p class="sum-cheer">${esc(cheer)}</p>` : ''}<h2>${esc(w.name.split(' — ')[0])}</h2>
     <div class="sum-ring"><svg width="120" height="120" viewBox="0 0 120 120" aria-hidden="true"><circle cx="60" cy="60" r="${R}" class="trk"/><circle cx="60" cy="60" r="${R}" class="val" stroke-dasharray="${C}" stroke-dashoffset="${C}" data-to="${C * (1 - pct / 100)}" transform="rotate(-90 60 60)"/></svg><span class="big-num" data-count="${pct}">0 %</span></div>
     <p class="soft">${w.sets.length} set${w.sets.length === 1 ? '' : 's'}${w.late ? ' · logged for ' + shortDate(w.date) : ''}</p>
     ${prs ? `<div class="sum-pr"><span class="stars">${'★'.repeat(Math.min(prs, 5))}</span><b>${prs} personal record${prs > 1 ? 's' : ''}</b></div>` : ''}

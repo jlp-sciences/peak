@@ -1,6 +1,20 @@
 /* Peak — session history (Calendar → List), editing a past session, and notes on sessions, exercises and sets. */
 const BUBBLE = (on) => `<svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="${on ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16v11H9l-5 4z"/></svg>`;
 const wById = (id) => D.workouts.find((w) => w.id === id);
+/* completion of a past session from its sets and what was planned (optional blocks left out) */
+function recalcPct(w) {
+  if (!w || w.pct == null || !(w.items || []).length) return;
+  let tot = 0, done = 0;
+  w.items.forEach((it) => {
+    if (/\(optional\)$/.test(it.block || '')) return; const ss = w.sets.filter((x) => x.exId === it.exId);
+    const plan = {}; // planned sets per side ('' when not left/right)
+    if (it.rows && it.rows.length) it.rows.forEach((r) => { plan[r.side || ''] = (plan[r.side || ''] || 0) + 1; });
+    else if (it.presc && it.presc.L != null) { plan.L = it.presc.L; plan.R = it.presc.R; } else if (it.presc) plan[''] = it.presc.sets || 0;
+    Object.entries(plan).forEach(([sd, n]) => { tot += n; done += Math.min(n, ss.filter((x) => (x.side || '') === sd).length); });
+  });
+  if (!tot) return; w.pct = Math.min(100, Math.round(100 * done / tot));
+  if (w.pct >= 100) { delete w.reason; delete w.reasonNote; }
+}
 const fmtSetH = (ex, s) => [s.w != null && ex.type !== 'reps' && ex.type !== 'time' ? (ex.type === 'bwkg' ? (s.w ? 'BW+' + fmtW(s.w) : 'BW') : fmtW(s.w) + ' kg') : null, s.r != null ? s.r + ' reps' : null, s.t != null ? fmtT(s.t) : null, s.d != null ? s.d + ' m' : null].filter(Boolean).join(' × ');
 const durOf = (w) => (w.late ? '' : Math.max(1, Math.round(((w.end || 0) - (w.start || 0)) / 60000)) + ' min');
 
@@ -31,7 +45,8 @@ function workoutView() {
   return `<header class="top"><button class="icon-btn" aria-label="Back to history" data-act="go" data-v="calendar">${svg('back')}</button>
       <div class="grow"><div class="strong">${esc(w.name.split(' — ')[0])}</div><span class="muted sm">${longDate(w.date)}${w.pct != null ? ' · ' + w.pct + ' %' : ''} · ${w.sets.length} sets${durOf(w) ? ' · ' + durOf(w) : ''}</span></div>
       <button class="btn small outline" data-act="sheet" data-v="w-edit">Edit</button></header>
-    ${w.reason ? `<section class="card why-card"><span class="eyebrow">STOPPED EARLY · ${w.pct != null ? w.pct + ' %' : ''}</span><p><b>${esc(typeof whyLabel === 'function' ? whyLabel(w.reason) : w.reason)}</b>${w.reasonNote ? ' — ' + esc(w.reasonNote) : ''}</p></section>` : ''}
+    ${w.reason ? `<button class="card why-card" data-act="why-edit" data-v="${w.id}" aria-label="Change the reason"><span class="row between"><span class="eyebrow">STOPPED EARLY · ${w.pct != null ? w.pct + ' %' : ''}</span><span class="muted sm">Edit ›</span></span><p><b>${esc(typeof whyLabel === 'function' ? whyLabel(w.reason) : w.reason)}</b>${w.reasonNote ? ' — ' + esc(w.reasonNote) : ''}</p></button>`
+      : w.pct != null && w.pct < 100 && typeof whyLabel === 'function' ? `<button class="btn outline mb why-add" data-act="why-edit" data-v="${w.id}">Add a reason · ${w.pct} % done</button>` : ''}
     <section class="card"><label class="field">Session note<textarea rows="2" data-note="wsession" data-w="${w.id}" placeholder="How did it go? Optional">${esc(w.note || '')}</textarea></label></section>
     ${blocks || '<section class="card"><p class="muted">No set in this session.</p></section>'}
     <button class="btn outline" data-act="hist-addex">${svg('plus', 18, 2)} Add an exercise</button>
@@ -111,14 +126,14 @@ document.addEventListener('click', (ev) => {
       ['w', 'r', 't', 'd'].forEach((k) => { if ($('#hs-' + k)) { const v = num(k); if (v == null) delete s[k]; else s[k] = v; } });
       const note = ($('#hs-note').value || '').trim(); if (note) s.note = note; else delete s.note;
       const row = (w.items || []).flatMap((it) => it.rows || []).find((r) => r.id === s.id); if (row) Object.assign(row, { w: s.w, r: s.r, t: s.t, d: s.d, side: s.side, note: s.note });
-      w.upd = Date.now(); save(); UI.sheet = null; render(); toast('Set updated'); break;
+      recalcPct(w); w.upd = Date.now(); save(); UI.sheet = null; render(); toast('Set updated'); break;
     }
-    case 'hs-del': ask('Delete this set?', 'Delete', () => { w.sets = w.sets.filter((x) => x.id !== UI.hSet); (w.items || []).forEach((it) => { if (it.rows) it.rows = it.rows.filter((r) => r.id !== UI.hSet); }); w.upd = Date.now(); save(); UI.sheet = null; render(); toast('Set deleted'); }); break;
+    case 'hs-del': ask('Delete this set?', 'Delete', () => { w.sets = w.sets.filter((x) => x.id !== UI.hSet); (w.items || []).forEach((it) => { if (it.rows) it.rows = it.rows.filter((r) => r.id !== UI.hSet); }); recalcPct(w); w.upd = Date.now(); save(); UI.sheet = null; render(); toast('Set deleted'); }); break;
     case 'hset-add': {
       if (!w) break; const ss = w.sets.filter((x) => x.exId === b.dataset.v); const last = ss[ss.length - 1] || { exId: b.dataset.v };
       const ex = D.exercises[b.dataset.v] || {}; const side = ex.uni ? (ss.filter((x) => x.side === 'L').length > ss.filter((x) => x.side === 'R').length ? 'R' : 'L') : null;
       const s = Object.assign({}, last, { id: uid(), side, ts: Date.now() }); delete s.note; delete s.feel;
-      const i = w.sets.lastIndexOf(last); w.sets.splice(i >= 0 ? i + 1 : w.sets.length, 0, s); w.upd = Date.now(); save(); UI.hSet = s.id; UI.sheet = 'hset'; render(); break;
+      const i = w.sets.lastIndexOf(last); w.sets.splice(i >= 0 ? i + 1 : w.sets.length, 0, s); recalcPct(w); w.upd = Date.now(); save(); UI.hSet = s.id; UI.sheet = 'hset'; render(); break;
     }
     case 'hist-addex': UI.histAdd = true; UI.pq = ''; UI.pcat = null; UI.sheet = 'picker'; render(); break;
     case 'hist-del': if (!w) break; ask('Delete this session and its ' + w.sets.length + ' sets? This cannot be undone.', 'Delete', () => { D.workouts = D.workouts.filter((x) => x.id !== w.id); save(); UI.sheet = null; UI.wId = null; go('calendar'); toast('Session deleted'); }); break;
