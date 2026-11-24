@@ -99,6 +99,8 @@ const LIBRARY = [
   ['easyrow', 'Easy rowing', 'Mobility', 'time', false, 'none', 0, 'Feet strapped in, light damper, tall posture.', 'Row at an easy pace: legs, then body, then arms.', 'Smooth and relaxed; you should be able to talk.', 'Warms up the whole body, especially the back.'],
   ['easyjog', 'Easy jog', 'Mobility', 'time', false, 'none', 0, 'Comfortable shoes, relaxed shoulders.', 'Jog at a very easy pace.', 'Fully conversational pace.', 'Gently raises the heart rate.'],
   ['lowshuffle', 'Low lateral shuffle', 'Mobility', 'reps', true, 'none', 0, 'Low athletic stance, feet wider than the hips.', 'Shuffle sideways 10 m staying low, then come back the other way.', 'Hips stay low; feet never cross.', 'Primes the TT footwork pattern.'],
+  ['shuttle', 'Lateral shuttle game', 'Conditioning', 'time', false, 'none', 120, 'Two cones 3 m apart, low TT stance between them.', 'Shuffle from cone to cone touching the floor at each one: 10 s on, 20 s off, 8 times per game.', 'Stay low, never cross the feet, touch the floor at the left cone.', 'TT-specific conditioning: repeated short lateral efforts like a rally.'],
+  ['easyrun', 'Easy run', 'Conditioning', 'time', false, 'none', 0, 'Comfortable shoes, flat route.', 'Run at an easy, conversational pace for the set time.', 'You should be able to talk; slow down if the heart rate climbs.', 'Builds the aerobic base and helps recovery after a match.'],
   ['treadmill', 'Treadmill run', 'Conditioning', 'time', false, 'none', 60, 'Set the treadmill speed and incline.', 'Run at the chosen pace for the set time.', 'Relaxed shoulders; short, light steps.', 'Builds aerobic fitness.']
 ];
 LIBRARY.forEach(([id, name, cat, type, uni, equip, rest, setup, move, key, benefit]) => {
@@ -127,7 +129,7 @@ const MOB_FIX = ['hip9090', 'thoracic', 'anklewall', 'doorpec', 'bandwalk']; // 
 /* adds the blocks to every cycle of the built-in sessions that do not have them yet; returns true if something changed */
 function addWarmups(plans, redo) {
   let changed = false; const OURS = ['Warm-up', 'Mobility', COOL];
-  plans.forEach((p) => { if (!['tt-season', 'away'].includes(p.id)) return; let pc = false; p.sessions.forEach((s) => {
+  plans.forEach((p) => { if (!['tt-season', 'away'].includes(p.id) || (p.v || 0) >= 2) return; /* v2 plans carry their own warm-up and mobility */ let pc = false; p.sessions.forEach((s) => {
     const W = WARMUPS[s.id]; if (!W || !s.tpl) return;
     Object.keys(s.tpl).forEach((k) => {
       let blocks = s.tpl[k];
@@ -143,4 +145,4 @@ addWarmups(SEED_PLANS);
 
 /* exercises done with two dumbbells (or two kettlebells): the weight can be logged as the total or per dumbbell.
    Inside the app the weight is always the total of both. */
-const PAIR_IDS = new Set(['bulgarian', 'farmer', 'walklunge', 'revlunge', 'splitsquat', 'stepup', 'dbrdl', 'dbbench', 'inclinedb', 'dbshoulder', 'arnold', 'latraise', 'frontraise', 'reardelt', 'curl', 'inclinecurl', 'hammer', 'dbfly', 'shrug', 'wristcurl', 'revwrist', 'sandbaglunge']);
+const PAIR_IDS = new Set(['bulgarian', 'farmer', 'walklunge', 'revlunge', 'splitsquat', 'stepup', 'dbrdl', 'dbbench', 'inclinedb', 'dbshoulder', 'arnold', 'latraise', 'frontraise', 'reardelt', 'inclinecurl', 'dbfly', 'shrug', 'wristcurl', 'revwrist', 'sandbaglunge']);

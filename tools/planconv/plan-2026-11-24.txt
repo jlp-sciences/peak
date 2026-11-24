@@ -1,0 +1,177 @@
+PLAN: Table Tennis Season 2026-2027
+WEEKS PER CYCLE: 4 (light week: week 4: −1 set per exercise (minimum 2), −10 % load, jumps and med ball unchanged, Friday Gym 3 replaced by the tests)
+CYCLES: A, B, C (A = strength bias, B = power bias, C = speed & transfer bias; A → B → C repeats until June, each round starting with higher loads. Cycle B and C exercises to be defined before each cycle starts)
+
+SESSION G1 | Gym 1 — Lower strength & low-stance reactivity | required | ~55 min
+CYCLE A
+## Warm-up
+- Stationary bike | 1 × 3:00 | cue: easy pace
+- Single-leg glute bridge | L 2 × 12 / R 1 × 12 | BW | cue: left first, 2 s squeeze at the top
+- Banded lateral walk | 2 × 10 | cue: 10 steps each way, knees out
+## Speed & Power
+- Low pogo | 2 × 0:10 | BW | cue: superset with skater hop; knees stay bent, shortest ground contact
+- Skater hop | L 3 × 4 / R 2 × 4 | BW | cue: land low, stick 2 s, knee stays out
+## Strength
+- Isometric squat pin push | 3 × 0:05 | max effort | cue: bar against the pins at TT stance depth, 2 min rest
+- Back squat | 4 × 5 | 80 kg | +2.5 kg per week (week 3 ≈ 87.5 kg) | cue: 3 s down, 2–3 min rest
+## Core
+- Suitcase carry | L 3 × 20 m / R 2 × 20 m | cue: done during back squat rest; one heavy dumbbell, stay tall, no leaning
+## Accessory
+- Bulgarian split squat | L 3 × 6–8 / R 2 × 6–8 | cue: superset with kickstand RDL, RPE 8, left first, right matches
+- Kickstand Romanian deadlift | L 3 × 8 / R 2 × 8 | cue: one dumbbell, slow lowering, glute focus
+## Mobility
+- Hip 90/90 | L 1 × 1:00 / R 1 × 1:00
+- Couch stretch | L 1 × 1:30 / R 1 × 1:30
+
+SESSION G2 | Gym 2 — Upper body & rotational power | required | ~55 min
+CYCLE A
+## Warm-up
+- Rowing machine | 1 × 3:00 | cue: easy pace
+- Band pull-apart | 2 × 15
+- Quadruped thoracic rotation | L 1 × 8 / R 1 × 8
+## Speed & Power
+- Medicine ball rotational scoop toss | L 3 × 5 / R 2 × 5 | 4 kg | cue: from TT stance against a wall; L = throws from the left hip; hips start, arms finish
+## Strength
+- Weighted pull-up | 4 × 5 | BW + 5 kg | +2.5 kg per week (week 3 = BW + 10 kg) | cue: superset with Z-press
+- Single-arm dumbbell Z-press | L 3 × 6–8 / R 2 × 6–8 | cue: seated on the floor, legs straight, no leaning, RPE 8
+## Accessory
+- Single-arm dumbbell row | L 4 × 8–10 / R 3 × 8–10 | cue: superset with curl; elbow to hip, 1 s squeeze, RPE 8
+- Single-arm dumbbell curl | L 3 × 10–12 / R 2 × 10–12 | cue: strict, no swing
+## Core
+- Standing cable rotation | L 3 × 8 / R 2 × 8 | cue: superset with side plank; from TT stance, hips lead, arms stay long
+- Side plank | L 3 × 0:30 / R 2 × 0:30
+## Mobility
+- Thoracic rotation | L 1 × 1:00 / R 1 × 1:00
+- Doorway pec stretch | L 1 × 1:00 / R 1 × 1:00
+- Sleeper stretch | L 1 × 1:00 / R 2 × 1:00 | cue: playing shoulder gets the extra set
+
+SESSION G3 | Gym 3 — Power & agility | required | ~50 min
+CYCLE A
+## Warm-up
+- Stationary bike | 1 × 3:00 | cue: easy pace
+- Leg swing | L 1 × 10 / R 1 × 10 | cue: front-back and side to side
+- Lateral shuffle | 2 × 10 m | cue: low stance, each way
+## Speed & Power
+- Split-stance switch jump | 2 × 6 | BW | cue: superset with shuffle to sprint; stay low, little air time
+- Shuffle to sprint | L 3 × 5 m / R 2 × 5 m | BW | cue: 2 shuffle steps then sprint; L = starting toward the left
+- Medicine ball rotational throw | L 3 × 4 / R 2 × 4 | 3 kg | cue: pure speed, hips first
+## Strength (optional)
+- Deadlift | 3 × 3 | 105 kg | cue: free weekends only; fast off the floor, stop at any slowdown
+## Core
+- Pallof press | L 3 × 10 / R 3 × 10 | cue: done during deadlift rest; if no deadlift, after the accessory block; resist all rotation
+## Accessory
+- Single-leg Romanian deadlift | L 3 × 6 / R 2 × 6 | cue: superset with cable row; slow down, fast up
+- Single-arm cable row | L 3 × 10 / R 2 × 10 | cue: split stance, slight rotation with the pull
+## Conditioning (optional)
+- Stationary bike sprint | 5 × 0:10 | cue: free weekends only; all-out, 50 s easy between
+## Mobility
+- Ankle wall drill | L 1 × 1:00 / R 1 × 1:00
+- Hip 90/90 | L 1 × 1:00 / R 1 × 1:00
+- Thoracic rotation | L 1 × 1:00 / R 1 × 1:00
+
+SESSION G3M | Gym 3 — Match-eve version | optional | ~35 min
+CYCLE A
+## Warm-up
+- Stationary bike | 1 × 3:00 | cue: easy pace
+- Leg swing | L 1 × 10 / R 1 × 10
+- Lateral shuffle | 2 × 10 m
+## Speed & Power
+- Split-stance switch jump | 2 × 6 | BW | cue: replaces G3 the day before a match; nothing should feel hard
+- Shuffle to sprint | L 2 × 5 m / R 1 × 5 m | BW
+- Medicine ball rotational throw | L 2 × 4 / R 1 × 4 | 3 kg
+## Accessory
+- Single-leg Romanian deadlift | L 2 × 6 / R 1 × 6
+- Single-arm cable row | L 2 × 10 / R 1 × 10
+## Core
+- Pallof press | L 2 × 10 / R 2 × 10 | cue: resist all rotation
+## Mobility
+- Ankle wall drill | L 1 × 1:00 / R 1 × 1:00
+- Hip 90/90 | L 1 × 1:00 / R 1 × 1:00
+
+SESSION C1 | Sunday — TT interval games | optional | ~35 min
+CYCLE ALL
+## Warm-up
+- Easy jog | 1 × 5:00 | cue: or easy bike
+- Leg swing | L 1 × 10 / R 1 × 10
+- Lateral shuffle | 2 × 10 m
+## Conditioning
+- Lateral shuttle game | 3 × 4:00 | cue: after a free Saturday; each game = 8 × (10 s on / 20 s off) between cones 3 m apart, touch the floor at the left cone; 2 min rest; week 1: 3 games, week 2: 4, week 3: 5, week 4: 2
+## Cool-down (optional)
+- Hip 90/90 | L 1 × 1:00 / R 1 × 1:00
+
+SESSION C2 | Sunday — Easy aerobic | optional | ~45 min
+CYCLE ALL
+## Conditioning
+- Easy run | 1 × 45:00 | cue: after a match; 5:45–6:00/km, HR ≈ 140, or bike if legs are heavy
+## Cool-down (optional)
+- Couch stretch | L 1 × 1:00 / R 1 × 1:00
+
+SESSION O1 | While out A — Legs & spring | optional | ~35 min
+CYCLE ALL
+## Warm-up
+- Single-leg glute bridge | L 2 × 12 / R 1 × 12 | BW
+## Speed & Power
+- Low pogo | 2 × 0:10 | BW
+- Skater hop | L 3 × 4 / R 2 × 4 | BW
+## Accessory
+- Bulgarian split squat | L 3 × 10 / R 2 × 10 | cue: loaded backpack
+- Single-leg Romanian deadlift | L 3 × 10 / R 2 × 10 | cue: loaded backpack
+- Split squat isometric hold | L 3 × 0:30 / R 2 × 0:30 | BW | cue: at TT stance depth
+## Core
+- Side plank | L 3 × 0:30 / R 2 × 0:30
+## Mobility
+- Hip 90/90 | L 1 × 1:00 / R 1 × 1:00
+
+SESSION O2 | While out B — Upper body & rotation | optional | ~35 min
+CYCLE ALL
+## Warm-up
+- Quadruped thoracic rotation | L 1 × 8 / R 1 × 8
+## Speed & Power
+- Explosive push-up | 3 × 6 | BW
+## Strength
+- Pull-up | 4 × 6–8 | BW | cue: stop 2 reps before failure; table or door rows if no bar
+- Pike push-up | 3 × 8 | BW
+## Accessory
+- Single-arm backpack row | L 3 × 12 / R 2 × 12
+- Single-arm backpack curl | L 3 × 12 / R 2 × 12
+## Core
+- Standing band rotation | L 3 × 10 / R 2 × 10 | cue: hips lead
+## Mobility
+- Thoracic rotation | L 1 × 1:00 / R 1 × 1:00
+
+SESSION O3 | While out C — Speed & engine | optional | ~30 min
+CYCLE ALL
+## Warm-up
+- Lateral shuffle | 2 × 10 m
+## Speed & Power
+- Split-stance switch jump | 2 × 6 | BW
+- Shuffle to sprint | L 3 × 5 m / R 2 × 5 m | BW
+## Conditioning
+- Lateral shuttle game | 3 × 4:00 | cue: 8 × (10 s on / 20 s off), 2 min rest
+## Mobility
+- Ankle wall drill | L 1 × 1:00 / R 1 × 1:00
+
+DAILY MOBILITY
+- Hip 90/90 | L 1 × 2:00 / R 1 × 2:00
+- Ankle wall drill | L 1 × 1:00 / R 1 × 1:00
+- Thoracic rotation | L 1 × 1:00 / R 1 × 1:00
+- Couch stretch | L 1 × 1:00 / R 1 × 1:00
+
+NEW: Low pogo | Power | time | bodyweight | –
+NEW: Skater hop | Power | reps | bodyweight | –
+NEW: Isometric squat pin push | Legs | time | barbell | –
+NEW: Suitcase carry | Core | weight & distance | dumbbell | one dumbbell
+NEW: Kickstand Romanian deadlift | Legs | weight & reps | dumbbell | one dumbbell
+NEW: Single-arm dumbbell Z-press | Shoulders | weight & reps | dumbbell | one dumbbell
+NEW: Medicine ball rotational scoop toss | Power | weight & reps | medicine ball | –
+NEW: Medicine ball rotational throw | Power | weight & reps | medicine ball | –
+NEW: Standing cable rotation | Core | weight & reps | cable/machine | –
+NEW: Split-stance switch jump | Power | reps | bodyweight | –
+NEW: Shuffle to sprint | Power | weight & distance | bodyweight | –
+NEW: Lateral shuttle game | Conditioning | time | none | –
+NEW: Split squat isometric hold | Legs | time | bodyweight | –
+NEW: Ankle wall drill | Mobility | time | none | –
+NEW: Sleeper stretch | Mobility | time | none | –
+NEW: Single-arm backpack row | Back | weight & reps | none | –
+NEW: Single-arm backpack curl | Biceps | weight & reps | none | –
+NEW: Standing band rotation | Core | reps | none | –

@@ -1,7 +1,7 @@
 /* Peak — app logic (vanilla JS, no build step). */
 'use strict';
 
-const APP_VERSION = '1.9.0';
+const APP_VERSION = '1.10.0';
 const STORE_KEY = 'peak.v1';
 
 /* ---------- helpers ---------- */
@@ -47,7 +47,7 @@ function seed() {
   const ex = {}; SEED_EXERCISES.forEach((e) => { ex[e.id] = JSON.parse(JSON.stringify(e)); });
   const plans = {}; SEED_PLANS.forEach((p) => { plans[p.id] = JSON.parse(JSON.stringify(p)); });
   const progress = {}; Object.keys(plans).forEach((id) => { progress[id] = { cycle: 0, week: 1, done: {}, since: iso(), csince: iso() }; });
-  return { v: 1, created: Date.now(), settings: { activePlan: 'tt-season', sound: true, vibrate: true, goalWeight: 76 }, exercises: ex, plans, progress, workouts: [], runs: {}, body: { measures: [], tests: [] }, active: null };
+  return { v: 1, created: Date.now(), settings: { activePlan: 'tt-season', sound: true, vibrate: true, goalWeight: 76, planV2: true, warmupV2: true }, exercises: ex, plans, progress, workouts: [], runs: {}, body: { measures: [], tests: [] }, active: null };
 }
 function load() {
   try { D = JSON.parse(localStorage.getItem(STORE_KEY)); } catch (e) { D = null; }
@@ -55,6 +55,13 @@ function load() {
   // add seed exercises / plans that appeared in a newer version, without touching user edits
   SEED_EXERCISES.forEach((e) => { if (!D.exercises[e.id]) D.exercises[e.id] = JSON.parse(JSON.stringify(e)); });
   SEED_PLANS.forEach((p) => { if (!D.plans[p.id] && !(D.settings.removedPlans || []).includes(p.id)) { D.plans[p.id] = JSON.parse(JSON.stringify(p)); D.progress[p.id] = { cycle: 0, week: 1, done: {} }; } });
+  // plan document of 24 Nov 2026: the built-in plans are replaced, progress (cycle, week, ticks) is kept
+  if (!D.settings.planV2) {
+    SEED_PLANS.forEach((sp) => { if (!D.plans[sp.id] && (D.settings.removedPlans || []).includes(sp.id)) return;
+      D.plans[sp.id] = Object.assign(JSON.parse(JSON.stringify(sp)), { upd: Date.now() });
+      const pr = progOf(sp.id); Object.keys(pr.done || {}).forEach((k) => { if (!sp.sessions.some((x) => x.id === k)) delete pr.done[k]; }); pr.upd = Date.now(); });
+    D.settings.planV2 = true; D.settings.warmupV2 = true;
+  }
   if (!D.settings.warmupV2 && typeof addWarmups === 'function') {
     addWarmups(Object.values(D.plans), !!D.settings.warmupV1); D.settings.warmupV2 = true;
     MOB_FIX.forEach((id) => { const e = D.exercises[id], sd = SEED_EXERCISES.find((x) => x.id === id); if (e && sd && !e.upd) Object.assign(e, { name: sd.name, type: sd.type, uni: sd.uni }); });

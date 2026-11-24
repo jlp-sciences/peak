@@ -1,5 +1,5 @@
 /* Peak service worker — offline app shell. Bump VERSION on every release. */
-const VERSION = 'peak-1.9.0';
+const VERSION = 'peak-1.10.0';
 const SHELL = ['./', 'index.html', 'css/app.css', 'js/data.js', 'js/guides.js', 'js/gear.js', 'js/library.js', 'js/app.js', 'js/screens.js', 'js/plans.js', 'js/planning.js', 'js/awards.js', 'js/climb.js', 'js/history.js', 'js/routines.js', 'js/motivation.js', 'js/sync.js', 'manifest.webmanifest', 'icons/icon.svg', 'icons/icon-192.png', 'icons/icon-512.png'];
 
 self.addEventListener('install', (e) => {
