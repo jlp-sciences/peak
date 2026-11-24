@@ -1,7 +1,7 @@
 /* Peak — app logic (vanilla JS, no build step). */
 'use strict';
 
-const APP_VERSION = '1.8.1';
+const APP_VERSION = '1.8.2';
 const STORE_KEY = 'peak.v1';
 
 /* ---------- helpers ---------- */
@@ -713,6 +713,7 @@ function sheetHTML() {
 
 /* ---------- render ---------- */
 function render() {
+  if (typeof saveView === 'function' && UI.view) setTimeout(saveView, 0);
   const views = {
     today: viewToday, session: viewSession, calendar: calendarView, exercises: exercisesView,
     exercise: exerciseView, analysis: analysisView, body: bodyView
@@ -846,10 +847,23 @@ function importFile(ev) {
 }
 
 /* ---------- boot ---------- */
+/* remember where we were, so a refresh (or the phone reloading the app) comes back to the same screen */
+const VIEW_KEY = 'peak.view.v1';
+const VIEW_STATE = ['view', 'prev', 'exId', 'exTab', 'exCat', 'wId', 'prTab', 'trTab', 'calMode', 'calMonth', 'calSel', 'anPeriod', 'metric', 'reKey', 'reHome', 'testCol'];
+function saveView() { try { const o = {}; VIEW_STATE.forEach((k) => { if (UI[k] != null) o[k] = UI[k]; }); sessionStorage.setItem(VIEW_KEY, JSON.stringify(o)); } catch (e) { /* storage unavailable */ } }
+function restoreView() {
+  let o = null; try { o = JSON.parse(sessionStorage.getItem(VIEW_KEY) || 'null'); } catch (e) { o = null; }
+  if (!o || !o.view) return;
+  const ok = { exercise: () => D.exercises[o.exId], workout: () => D.workouts.some((w) => w.id === o.wId), session: () => active(), 'routine-edit': () => typeof ROUTINES !== 'undefined' && ROUTINES[o.reKey], rpreview: () => false };
+  if (ok[o.view] && !ok[o.view]()) return;
+  VIEW_STATE.forEach((k) => { if (o[k] != null) UI[k] = o[k]; });
+}
 function boot() {
   load();
-  if (active()) UI.view = 'session';
+  restoreView();
+  if (active() && UI.view === 'today') UI.view = 'session';
   render();
+  window.addEventListener('pagehide', saveView); document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') saveView(); });
   if ('serviceWorker' in navigator && location.protocol === 'https:' && !/claude|claudeusercontent/.test(location.host)) {
     navigator.serviceWorker.register('sw.js').catch(() => { /* offline cache unavailable */ });
   }
