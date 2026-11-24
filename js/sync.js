@@ -13,7 +13,7 @@ const DRIVE_FILE = 'peak-sync.json';
 const SYNC_ORIGIN = 'https://jlp-sciences.github.io';
 const TOKEN_KEY = 'peak.gtoken', META_KEY = 'peak.meta', TRASH_KEY = 'peak.trash';
 const TRASH_MIN = 10, TRASH_KEEP = 5, FILE_V = 2;
-const KNOWN = ['workouts', 'exercises', 'plans', 'progress', 'settings', 'runs', 'measures', 'tests', 'planned', 'eras'];
+const KNOWN = ['workouts', 'exercises', 'plans', 'progress', 'settings', 'runs', 'measures', 'tests', 'planned', 'eras', 'quotes'];
 const LOCAL_SETTINGS = ['sound', 'vibrate', 'upd'];
 
 const SYNC = { token: null, exp: 0, client: null, busy: false, state: 'idle', err: null, timer: null, last: 0, pendingRender: false, blocked: false, rev: 0 };
@@ -29,6 +29,7 @@ function recordsOf(db) {
   Object.keys(db.progress || {}).forEach((k) => m.set('progress:' + k, db.progress[k]));
   Object.keys(db.settings || {}).filter((k) => !LOCAL_SETTINGS.includes(k)).forEach((k) => m.set('settings:' + k, db.settings[k]));
   Object.keys(db.runs || {}).forEach((d) => m.set('runs:' + d, true));
+  Object.keys(db.quotes || {}).forEach((d) => m.set('quotes:' + d, true));
   Object.values(db.planned || {}).forEach((p) => m.set('planned:' + p.id, p));
   Object.values(db.eras || {}).forEach((e) => m.set('eras:' + e.id, e));
   ((db.body || {}).measures || []).forEach((x) => m.set('measures:' + x.date, x));
@@ -47,6 +48,7 @@ function putRec(db, path, content) {
     case 'exercises': case 'plans': case 'progress': if (del) delete db[coll][id]; else db[coll][id] = content; break;
     case 'settings': if (del) delete db.settings[id]; else db.settings[id] = content; break;
     case 'runs': if (del) delete db.runs[id]; else db.runs[id] = true; break;
+    case 'quotes': db.quotes = db.quotes || {}; if (del) delete db.quotes[id]; else db.quotes[id] = true; break;
     case 'planned': db.planned = db.planned || {}; if (del) delete db.planned[id]; else db.planned[id] = content; break;
     case 'eras': db.eras = db.eras || {}; if (del) delete db.eras[id]; else db.eras[id] = content; break;
     case 'measures': byKey(db.body.measures, 'date', id); db.body.measures.sort((a, b) => a.date.localeCompare(b.date)); break;

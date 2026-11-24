@@ -307,7 +307,10 @@ function motdFor(dateIso) {
   const idx = MOTD.map((_, i) => i); for (let i = idx.length - 1; i > 0; i--) { const j = Math.floor(rnd() * (i + 1)); [idx[i], idx[j]] = [idx[j], idx[i]]; }
   return MOTD[idx[day % idx.length]];
 }
-function motdHTML() { return `<section class="card motd"><span class="eyebrow">TODAY’S MOTIVATION</span><p>${esc(motdFor(iso()))}</p></section>`; }
+function motdHTML() {
+  const d = iso(); D.quotes = D.quotes || {}; if (!D.quotes[d]) { D.quotes[d] = true; setTimeout(save, 0); }
+  return `<section class="card motd"><span class="eyebrow">TODAY’S MOTIVATION</span><p>${esc(motdFor(iso()))}</p></section>`;
+}
 
 /* ---------- unfinished sessions ---------- */
 const WHY = [['time', 'Not enough time'], ['energy', 'Low energy'], ['pain', 'Pain'], ['none', 'No comment'], ['other', 'Other']];

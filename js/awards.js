@@ -124,6 +124,7 @@ function careerStats(ws) {
   s.plateau = counter(prs.filter((p) => p.old && daysBetween(p.old, p.date) >= 90).map((p) => p.date));
   s.stillGot = counter([...new Set(prs.filter((p) => wOf[p.wid] && wOf[p.wid].gap >= 14).map((p) => p.wid))].map((id) => wOf[id].w.date));
   s.twin = counter(Object.values(prs.reduce((o, p) => { if (p.side) { const k = p.wid + p.exId; (o[k] = o[k] || { date: p.date, s: new Set() }).s.add(p.side); } return o; }, {})).filter((x) => x.s.size === 2).map((x) => x.date));
+  s.quoteDays = counter(Object.keys(D.quotes || {}).sort());
   s.sneaky = counter([...new Set(prs.filter((p) => wOf[p.wid] && wOf[p.wid].w.light).map((p) => p.wid))].map((id) => wOf[id].w.date));
   Object.keys(CATS).forEach((c) => { s['cat_' + c] = counter(sets.filter((x) => exOf(x).cat === c).map((x) => x.date)); });
   // daily mobility sessions are not sessions, but their sets count for Stretch Goals
@@ -292,6 +293,7 @@ const TROPHIES = [
   T_('steady-hands', 'secret', 'Secret', 'Steady Hands', 'Finish 10 sessions at 100 % with every set rated Good', 'steady', [10]),
   T_('unbreakable', 'secret', 'Secret', 'Unbreakable', 'Reach a 52-week streak without using a joker', 'unbroken', [52]),
   T_('triple-crown', 'secret', 'Secret', 'Triple Crown', 'Set 3 personal records in one session', 'triple', [3]),
+  T_('words-to-lift-by', 'secret', 'Secret', 'Words to Lift By', 'See the motivation of the day on 250 different days', 'quoteDays', [250]),
   T_('sneaky-strong', 'secret', 'Secret', 'Sneaky Strong', 'Set a record during a light week', 'sneaky', [1]),
   T_('perfect-mirror', 'secret', 'Secret', 'Perfect Mirror', 'Match your left reps on the right in every set, 10 sessions in a row', 'mirror', [10]),
   T_('leap-day', 'secret', 'Secret', 'Leap Day', 'Train on 29 February', 'leap', [1]),
@@ -311,7 +313,7 @@ function levelOf(t, stats) {
 let AW = { key: null, data: null };
 function awardsKey() {
   const ws = D.workouts; const last = ws.length ? (ws[ws.length - 1].upd || 0) : 0;
-  return [ws.length, ws.filter((w) => w.end).length, last, Object.keys(D.runs || {}).length, ((D.body || {}).measures || []).length, ((D.body || {}).tests || []).length, JSON.stringify(D.eras || {}).length, Object.keys(D.planned || {}).length, Object.keys(D.exercises).length, iso()].join('|');
+  return [ws.length, ws.filter((w) => w.end).length, last, Object.keys(D.runs || {}).length, ((D.body || {}).measures || []).length, ((D.body || {}).tests || []).length, JSON.stringify(D.eras || {}).length, Object.keys(D.planned || {}).length, Object.keys(D.exercises).length, Object.keys(D.quotes || {}).length, iso()].join('|');
 }
 function awards() {
   if (ensureEra()) save();
@@ -481,7 +483,7 @@ const SECRET_HINTS = {
   'seven-days': 'A full week, without a single day off.', 'plan-b': 'When the machine is taken, adapt.',
   'steady-hands': 'Not too easy, not too hard — again and again.', 'unbreakable': 'A whole year, no safety net.',
   'triple-crown': 'Some days, everything goes up at once.', 'perfect-mirror': 'Left and right, perfectly balanced.',
-  'leap-day': 'A day that only comes every four years.', 'sneaky-strong': 'Who said easy weeks are easy?', 'full-house': 'Every box ticked, even the optional ones.'
+  'leap-day': 'A day that only comes every four years.', 'sneaky-strong': 'Who said easy weeks are easy?', 'words-to-lift-by': 'Some words stay with you.', 'full-house': 'Every box ticked, even the optional ones.'
 };
 /* ---------- how to get it: one concrete tip per trophy ---------- */
 const MONO = new Set(['sessions', 'full', 'records', 'recordEx', 'sets', 'reps', 'hours', 'left', 'tonnage', 'runs', 'engine', 'weeks', 'cycles', 'months', 'balanced', 'explorer', 'checkin', 'double', 'schedule', 'summits', 'better', 'tested', 'light']);
